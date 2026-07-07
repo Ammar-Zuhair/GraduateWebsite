@@ -26,7 +26,7 @@ export default function MapPage() {
                   rel="noopener noreferrer"
                   className="text-on-surface-variant hover:text-[#c59e62] transition-colors underline font-bold"
                 >
-                  {locale === 'ar' ? 'القاعة العالمية الكبرى (شارع الدائري)' : 'Grand Global Hall (Al-Dairi Street)'}
+                  {locale === 'ar' ? 'القاعة العالمية الكبرى (شارع الداعري)' : 'Grand Global Hall (Al-Dairi Street)'}
                 </a>
               </div>
             </li>
