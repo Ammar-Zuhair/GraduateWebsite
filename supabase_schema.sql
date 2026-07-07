@@ -96,8 +96,20 @@ ON public.memories FOR SELECT USING (true);
 CREATE POLICY "Students can insert their own memories." 
 ON public.memories FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM public.students WHERE id = student_id));
 
+CREATE POLICY "Admins can insert any memories."
+ON public.memories FOR INSERT WITH CHECK (
+  (auth.jwt() ->> 'email') = 'admin@university.edu'
+  OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+);
+
 CREATE POLICY "Students can delete their own memories." 
 ON public.memories FOR DELETE USING (auth.uid() IN (SELECT user_id FROM public.students WHERE id = student_id));
+
+CREATE POLICY "Admins can delete any memories."
+ON public.memories FOR DELETE USING (
+  (auth.jwt() ->> 'email') = 'admin@university.edu'
+  OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+);
 
 -- News Policies
 CREATE POLICY "News are viewable by everyone." 

@@ -124,13 +124,6 @@ export default function StudentsPage({ viewStudentProfile }) {
               {getMajorName(grad.major)}
             </p>
 
-            {/* Wishes Count */}
-            <p className="text-xs text-on-surface-variant/80 font-bold mt-auto flex items-center justify-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
-                favorite
-              </span>
-              {locale === 'ar' ? `${getWishesCount(grad.id)} تهنئة` : `${getWishesCount(grad.id)} Wishes`}
-            </p>
           </article>
         ))}
       </section>

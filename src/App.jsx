@@ -75,11 +75,21 @@ function AppContent() {
   // Invitation link hook detection
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('token') === 'grad2026-secure-invite') {
+    const token = params.get('token');
+    let shouldClear = false;
+
+    if (token === 'grad2026-secure-invite' || token === 'admin2026-secure-invite') {
       setActivePage('register-student');
+      shouldClear = true;
     }
     if (params.get('login') === 'true') {
       setActivePage('login');
+      shouldClear = true;
+    }
+
+    if (shouldClear) {
+      // Remove query parameters from URL bar without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 

@@ -6,10 +6,43 @@ import GalleryLightbox from '../components/ui/GalleryLightbox';
 
 export default function StudentProfilePage({ studentId, onBack }) {
   const { locale } = useLanguage();
-  const { students, wishes, memories, updateStudent } = useData();
+  const { students, wishes, memories, updateStudent, addMemory, deleteMemory } = useData();
   const { user } = useAuth();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Add Photo states
+  const [isAddingPhoto, setIsAddingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoTitle, setPhotoTitle] = useState('');
+  const [isAddingPhotoLoading, setIsAddingPhotoLoading] = useState(false);
+  const [addPhotoError, setAddPhotoError] = useState('');
+
+  const handleAddPhoto = async (e) => {
+    e.preventDefault();
+    if (!photoUrl.trim()) return;
+
+    setIsAddingPhotoLoading(true);
+    setAddPhotoError('');
+    const result = await addMemory({
+      student_id: student.id,
+      title_ar: photoTitle.trim() || 'صورة من المعرض',
+      title_en: photoTitle.trim() || 'Gallery Photo',
+      url: photoUrl.trim(),
+      category: 'campus',
+      media_type: 'image'
+    });
+    setIsAddingPhotoLoading(false);
+
+    if (result.success) {
+      setIsAddingPhoto(false);
+      setPhotoUrl('');
+      setPhotoTitle('');
+      alert(locale === 'ar' ? '✅ تم إضافة الصورة إلى معرضك بنجاح!' : '✅ Photo added to your gallery successfully!');
+    } else {
+      setAddPhotoError(result.error || (locale === 'ar' ? 'فشل إضافة الصورة.' : 'Failed to add photo.'));
+    }
+  };
 
   // Edit Profile modal states
   const [isEditing, setIsEditing] = useState(false);
@@ -199,28 +232,26 @@ export default function StudentProfilePage({ studentId, onBack }) {
               "{student[`bio_${locale}`] || (locale === 'ar' ? 'لا توجد نبذة شخصية.' : 'No bio available.')}"
             </p>
           </div>
-
-          {/* Social share */}
-          <div className="bg-[#F5E6D3] dark:bg-surface-container p-8 border border-outline-variant/20 flex flex-col gap-6 shadow-sm">
-            <h3 className="text-xl text-primary font-bold border-b border-primary/10 pb-3">
-              {locale === 'ar' ? 'مشاركة الملف الشخصي' : 'Share Profile'}
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <a href={shareLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="bg-primary/5 hover:bg-primary/10 text-primary border border-outline-variant/30 font-bold p-3 text-xs text-center flex items-center justify-center gap-2">WhatsApp</a>
-              <a href={shareLinks.telegram} target="_blank" rel="noopener noreferrer" className="bg-primary/5 hover:bg-primary/10 text-primary border border-outline-variant/30 font-bold p-3 text-xs text-center flex items-center justify-center gap-2">Telegram</a>
-              <a href={shareLinks.twitter} target="_blank" rel="noopener noreferrer" className="bg-primary/5 hover:bg-primary/10 text-primary border border-outline-variant/30 font-bold p-3 text-xs text-center flex items-center justify-center gap-2">X (Twitter)</a>
-              <a href={shareLinks.facebook} target="_blank" rel="noopener noreferrer" className="bg-primary/5 hover:bg-primary/10 text-primary border border-outline-variant/30 font-bold p-3 text-xs text-center flex items-center justify-center gap-2">Facebook</a>
-            </div>
-          </div>
         </div>
 
         {/* Right column: Gallery */}
         <div className="lg:col-span-2 flex flex-col gap-12 w-full">
           {/* Gallery */}
           <section className="flex flex-col gap-6 w-full">
-            <h3 className="text-xl text-primary font-bold border-b border-primary/10 pb-3">
-              {locale === 'ar' ? 'معرض الذكريات الخاصة بي' : 'My Personal Gallery'}
-            </h3>
+            <div className="flex justify-between items-center border-b border-primary/10 pb-3">
+              <h3 className="text-xl text-primary font-bold">
+                {locale === 'ar' ? 'معرض الذكريات الخاصة بي' : 'My Personal Gallery'}
+              </h3>
+              {(isOwner || isAdmin) && (
+                <button
+                  onClick={() => setIsAddingPhoto(true)}
+                  className="bg-primary text-[#c59e62] border border-[#c59e62]/40 hover:bg-[#c59e62]/20 text-xs font-bold px-4 py-2 border-0 cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm font-bold">add_photo_alternate</span>
+                  {locale === 'ar' ? 'إضافة صورة للمعرض' : 'Add Photo'}
+                </button>
+              )}
+            </div>
             {studentGallery.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {studentGallery.map((image, index) => (
@@ -237,6 +268,25 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
                       <span className="material-symbols-outlined text-white text-3xl font-bold">zoom_in</span>
                     </div>
+
+                    {/* Delete button overlay */}
+                    {(isOwner || isAdmin) && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm(locale === 'ar' ? 'هل أنت متأكد من حذف هذه الصورة من معرضك الشخصي؟' : 'Delete this photo from your gallery?')) {
+                            const res = await deleteMemory(image.id);
+                            if (res && !res.success) {
+                              alert((locale === 'ar' ? 'فشل حذف الصورة: ' : 'Failed to delete photo: ') + res.error);
+                            }
+                          }
+                        }}
+                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 transition-colors z-20 shadow-md border-0 cursor-pointer flex items-center justify-center"
+                        title={locale === 'ar' ? 'حذف الصورة' : 'Delete Photo'}
+                      >
+                        <span className="material-symbols-outlined text-sm font-bold">delete</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -337,6 +387,83 @@ export default function StudentProfilePage({ studentId, onBack }) {
           onPrev={() => setCurrentIndex((prev) => (prev - 1 + studentGallery.length) % studentGallery.length)}
           onNext={() => setCurrentIndex((prev) => (prev + 1) % studentGallery.length)}
         />
+      )}
+      {/* Add Photo Modal */}
+      {isAddingPhoto && (
+        <div className="fixed inset-0 bg-black/65 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => {
+                setIsAddingPhoto(false);
+                setPhotoUrl('');
+                setPhotoTitle('');
+                setAddPhotoError('');
+              }}
+              className="absolute top-4 right-4 text-primary hover:text-secondary bg-transparent border-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <h2 className="text-xl font-bold text-primary mb-6 border-b border-[#c59e62]/20 pb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#c59e62]">add_photo_alternate</span>
+              {locale === 'ar' ? 'إضافة صورة للمعرض الخاص بي' : 'Add Photo to My Gallery'}
+            </h2>
+            
+            {addPhotoError && (
+              <div className="mb-4 p-3 bg-error-container border border-error/20 text-error font-bold text-xs text-center">
+                {addPhotoError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddPhoto} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'رابط الصورة الإلكتروني (URL)' : 'Photo Image URL'}</label>
+                <input 
+                  type="url" 
+                  value={photoUrl}
+                  onChange={(e) => setPhotoUrl(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  placeholder="https://..."
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'عنوان الصورة (اختياري)' : 'Photo Title (Optional)'}</label>
+                <input 
+                  type="text" 
+                  value={photoTitle}
+                  onChange={(e) => setPhotoTitle(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  placeholder={locale === 'ar' ? 'مثال: يوم التخرج، مناقشة المشروع...' : 'e.g. Graduation Day, Project Presentation...'}
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsAddingPhoto(false);
+                    setPhotoUrl('');
+                    setPhotoTitle('');
+                    setAddPhotoError('');
+                  }}
+                  className="px-4 py-2 border border-outline-variant/30 text-secondary text-xs font-bold hover:bg-black/5 bg-transparent"
+                >
+                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isAddingPhotoLoading}
+                  className="px-6 py-2 bg-[#c59e62] text-primary hover:bg-[#ffdeae] text-xs font-bold flex items-center gap-1.5 border-0"
+                >
+                  {isAddingPhotoLoading && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
+                  {locale === 'ar' ? 'إضافة الصورة' : 'Add Photo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

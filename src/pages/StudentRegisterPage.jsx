@@ -58,7 +58,7 @@ export default function StudentRegisterPage({ setActivePage }) {
       setFormSuccess(true);
       setTimeout(() => {
         // Force full page reload to boot the logged-in user session correctly
-        window.location.href = window.location.origin + (isAdminInvite ? '?login=true' : '');
+        window.location.href = window.location.origin;
       }, 2500);
     } else {
       setFormError(result.error || (locale === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.'));

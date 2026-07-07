@@ -6,7 +6,7 @@ export default function AdminPage() {
   const { locale } = useLanguage();
   const { 
     students, memories, wishes, sponsors,
-    deleteStudent, deleteWish, addMemory, deleteMemory,
+    deleteStudent, deleteWish, addMemory, deleteMemory, updateMemory,
     updateStudentStatus, updateWishStatus, updateStudent,
     addSponsorItem, deleteSponsorItem, updateSponsorItem
   } = useData();
@@ -73,6 +73,8 @@ export default function AdminPage() {
   const [memTitleEn, setMemTitleEn] = useState('');
   const [memUrl, setMemUrl] = useState('');
   const [memCat, setMemCat] = useState('ceremony');
+  const [memType, setMemType] = useState('image');
+  const [memCoverUrl, setMemCoverUrl] = useState('');
   const [memSuccess, setMemSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -118,6 +120,7 @@ export default function AdminPage() {
   const [editSpLogo, setEditSpLogo] = useState('');
   const [editSpDesc, setEditSpDesc] = useState('');
   const [editSpLink, setEditSpLink] = useState('');
+  const [editSpTier, setEditSpTier] = useState('gold');
   const [isSavingSponsor, setIsSavingSponsor] = useState(false);
   const [sponsorEditSuccess, setSponsorEditSuccess] = useState(false);
   const [sponsorEditError, setSponsorEditError] = useState('');
@@ -128,6 +131,7 @@ export default function AdminPage() {
     setEditSpLogo(sp.logo_url || '');
     setEditSpDesc(sp.description_ar || '');
     setEditSpLink(sp.website_link || '');
+    setEditSpTier(sp.tier || 'gold');
     setSponsorEditSuccess(false);
     setSponsorEditError('');
   };
@@ -141,7 +145,8 @@ export default function AdminPage() {
       name: editSpName,
       logo: editSpLogo,
       desc: editSpDesc,
-      link: editSpLink
+      link: editSpLink,
+      tier: editSpTier
     });
     setIsSavingSponsor(false);
     if (result.success) {
@@ -169,7 +174,8 @@ export default function AdminPage() {
       title_en: memTitleEn,
       url: memUrl,
       category: memCat,
-      media_type: 'image'
+      media_type: memType,
+      cover_url: memCoverUrl || null
     });
     setIsSubmitting(false);
 
@@ -177,10 +183,61 @@ export default function AdminPage() {
       setMemTitleAr('');
       setMemTitleEn('');
       setMemUrl('');
+      setMemCoverUrl('');
       setMemSuccess(true);
       setTimeout(() => setMemSuccess(false), 3000);
     } else {
-      alert("Error adding memory");
+      const errMsg = result.error?.message || result.error || (locale === 'ar' ? 'فشل حفظ التعديلات' : 'Failed to save changes');
+      alert((locale === 'ar' ? 'حدث خطأ أثناء إضافة الذكرى: ' : 'Error adding memory: ') + errMsg);
+    }
+  };
+
+  // Edit memory states
+  const [editingMemory, setEditingMemory] = useState(null);
+  const [editMemTitleAr, setEditMemTitleAr] = useState('');
+  const [editMemTitleEn, setEditMemTitleEn] = useState('');
+  const [editMemUrl, setEditMemUrl] = useState('');
+  const [editMemCat, setEditMemCat] = useState('ceremony');
+  const [editMemType, setEditMemType] = useState('image');
+  const [editMemCoverUrl, setEditMemCoverUrl] = useState('');
+  const [isSavingMemory, setIsSavingMemory] = useState(false);
+  const [memoryEditSuccess, setMemoryEditSuccess] = useState(false);
+  const [memoryEditError, setMemoryEditError] = useState('');
+
+  const startEditingMemory = (m) => {
+    setEditingMemory(m);
+    setEditMemTitleAr(m.title_ar || '');
+    setEditMemTitleEn(m.title_en || '');
+    setEditMemUrl(m.url || '');
+    setEditMemCat(m.category || 'ceremony');
+    setEditMemType(m.media_type || 'image');
+    setEditMemCoverUrl(m.cover_url || '');
+    setMemoryEditSuccess(false);
+    setMemoryEditError('');
+  };
+
+  const handleSaveMemory = async (e) => {
+    e.preventDefault();
+    if (!editingMemory) return;
+    setIsSavingMemory(true);
+    setMemoryEditError('');
+    const result = await updateMemory(editingMemory.id, {
+      title_ar: editMemTitleAr,
+      title_en: editMemTitleEn,
+      url: editMemUrl,
+      category: editMemCat,
+      media_type: editMemType,
+      cover_url: editMemCoverUrl || null
+    });
+    setIsSavingMemory(false);
+    if (result.success) {
+      setMemoryEditSuccess(true);
+      setTimeout(() => {
+        setMemoryEditSuccess(false);
+        setEditingMemory(null);
+      }, 1500);
+    } else {
+      setMemoryEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
     }
   };
 
@@ -345,7 +402,10 @@ export default function AdminPage() {
                       <button
                         onClick={async () => {
                           if (window.confirm(locale === 'ar' ? 'هل أنت متأكد من حذف هذا الطالب بالكامل من النظام؟' : 'Are you sure you want to delete this student from the database?')) {
-                            await deleteStudent(s.id);
+                            const res = await deleteStudent(s.id);
+                            if (res && !res.success) {
+                              alert((locale === 'ar' ? 'فشل حذف الطالب من قاعدة البيانات: ' : 'Failed to delete student: ') + res.error);
+                            }
                           }
                         }}
                         className="text-error hover:bg-error/10 px-3 py-1.5 font-bold transition-colors border-0 cursor-pointer text-xs animate-in"
@@ -437,7 +497,10 @@ export default function AdminPage() {
                       <button
                         onClick={async () => {
                           if (window.confirm(locale === 'ar' ? 'حذف هذه التهنئة نهائياً؟' : 'Delete this wish permanently?')) {
-                            await deleteWish(w.id);
+                            const res = await deleteWish(w.id);
+                            if (res && !res.success) {
+                              alert((locale === 'ar' ? 'فشل حذف التهنئة من قاعدة البيانات: ' : 'Failed to delete wish: ') + res.error);
+                            }
                           }
                         }}
                         className="text-error hover:bg-error/10 px-3 py-1.5 font-bold transition-colors border-0 cursor-pointer text-xs"
@@ -466,15 +529,29 @@ export default function AdminPage() {
           {/* Add Form */}
           <div className="lg:col-span-1 bg-[#F5E6D3] dark:bg-surface-container p-6 border border-outline-variant/20 shadow-sm flex flex-col gap-6 w-full">
             <h3 className="text-base text-primary font-bold border-b border-primary/10 pb-3">
-              {locale === 'ar' ? 'إضافة صورة ذكريات جديدة' : 'Add New Photo Memory'}
+              {locale === 'ar' ? 'إضافة صورة أو فيديو ذكريات جديد' : 'Add New Gallery Memory'}
             </h3>
 
             <form onSubmit={handleAddMemory} className="flex flex-col gap-6">
               {memSuccess && (
                 <div className="p-3 bg-[#efe0cd] border border-[#c59e62] text-primary font-bold text-xs">
-                  {locale === 'ar' ? 'تمت إضافة الصورة بنجاح!' : 'Memory added successfully!'}
+                  {locale === 'ar' ? 'تمت إضافة الذكرى بنجاح!' : 'Memory added successfully!'}
                 </div>
               )}
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-on-surface-variant font-bold block mb-1">
+                  {locale === 'ar' ? 'نوع الوسائط' : 'Media Type'}
+                </label>
+                <select
+                  value={memType}
+                  onChange={(e) => setMemType(e.target.value)}
+                  className="bg-surface-container border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full cursor-pointer"
+                >
+                  <option value="image">{locale === 'ar' ? 'صورة' : 'Image'}</option>
+                  <option value="video">{locale === 'ar' ? 'فيديو' : 'Video'}</option>
+                </select>
+              </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm text-on-surface-variant font-bold block mb-1">
@@ -504,7 +581,10 @@ export default function AdminPage() {
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm text-on-surface-variant font-bold block mb-1">
-                  {locale === 'ar' ? 'رابط الصورة الإلكتروني' : 'Image URL'}
+                  {memType === 'image' 
+                    ? (locale === 'ar' ? 'رابط الصورة الإلكتروني' : 'Image URL')
+                    : (locale === 'ar' ? 'رابط الفيديو الإلكتروني (يوتيوب أو مباشر)' : 'Video URL (YouTube or Direct)')
+                  }
                 </label>
                 <input
                   type="url"
@@ -515,6 +595,21 @@ export default function AdminPage() {
                   required
                 />
               </div>
+
+              {memType === 'video' && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-on-surface-variant font-bold block mb-1">
+                    {locale === 'ar' ? 'رابط صورة الغلاف الخاص بالفيديو (اختياري)' : 'Video Cover Image URL (Optional)'}
+                  </label>
+                  <input
+                    type="url"
+                    value={memCoverUrl}
+                    onChange={(e) => setMemCoverUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm text-on-surface-variant font-bold block mb-1">
@@ -542,15 +637,14 @@ export default function AdminPage() {
             </form>
           </div>
 
-          {/* Memories List */}
           <div className="lg:col-span-2 bg-[#F5E6D3] dark:bg-surface-container p-6 border border-outline-variant/20 shadow-sm overflow-x-auto w-full">
             <h3 className="text-base text-primary font-bold border-b border-primary/10 pb-3 mb-4">
-              {locale === 'ar' ? 'الصور الحالية في المعرض' : 'Current Gallery Photos'}
+              {locale === 'ar' ? 'الذكريات الحالية في المعرض' : 'Current Gallery Memories'}
             </h3>
             <table className="w-full text-right rtl:text-right ltr:text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-primary/20 font-bold text-secondary uppercase tracking-widest text-xs">
-                  <th className="py-3 px-4">{locale === 'ar' ? 'معاينة' : 'Preview'}</th>
+                  <th className="py-3 px-4">{locale === 'ar' ? 'النوع / معاينة' : 'Type / Preview'}</th>
                   <th className="py-3 px-4">{locale === 'ar' ? 'العنوان' : 'Title'}</th>
                   <th className="py-3 px-4">{locale === 'ar' ? 'التحكم' : 'Actions'}</th>
                 </tr>
@@ -559,19 +653,39 @@ export default function AdminPage() {
                 {memories.map(m => (
                   <tr key={m.id} className="border-b border-primary/10 hover:bg-primary/5 font-semibold text-primary">
                     <td className="py-3 px-4">
-                      <img src={m.url} alt="" className="w-12 h-8 object-cover border border-outline-variant/30" />
+                      <div className="flex items-center gap-3">
+                        {m.media_type === 'video' ? (
+                          <div className="w-12 h-8 bg-black flex items-center justify-center text-[#c59e62] border border-outline-variant/30">
+                            <span className="material-symbols-outlined text-lg">play_circle</span>
+                          </div>
+                        ) : (
+                          <img src={m.url} alt="" className="w-12 h-8 object-cover border border-outline-variant/30" />
+                        )}
+                        <span className="text-xs text-secondary capitalize">
+                          {m.media_type === 'video' ? (locale === 'ar' ? 'فيديو' : 'video') : (locale === 'ar' ? 'صورة' : 'image')}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-bold">{m[`title_${locale}`]}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 flex gap-2">
+                      <button
+                        onClick={() => startEditingMemory(m)}
+                        className="bg-primary text-[#c59e62] hover:bg-primary/95 text-[10px] font-bold px-3 py-1.5 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'تعديل' : 'Edit'}
+                      </button>
                       <button
                         onClick={async () => {
-                          if (window.confirm(locale === 'ar' ? 'حذف هذه الصورة؟' : 'Delete this image?')) {
-                            await deleteMemory(m.id);
+                          if (window.confirm(locale === 'ar' ? 'حذف هذه الذكرى؟' : 'Delete this memory?')) {
+                            const res = await deleteMemory(m.id);
+                            if (res && !res.success) {
+                              alert((locale === 'ar' ? 'فشل حذف الذكرى من قاعدة البيانات: ' : 'Failed to delete memory: ') + res.error);
+                            }
                           }
                         }}
-                        className="text-error hover:bg-error/10 px-3 py-1 font-bold transition-colors border-0 cursor-pointer text-xs"
+                        className="text-error hover:bg-error/10 px-3 py-1.5 font-bold transition-colors border-0 cursor-pointer text-xs"
                       >
-                        {locale === 'ar' ? 'حذف الصورة' : 'Delete'}
+                        {locale === 'ar' ? 'حذف' : 'Delete'}
                       </button>
                     </td>
                   </tr>
@@ -811,6 +925,19 @@ export default function AdminPage() {
                 <input type="url" value={editSpLink} onChange={e => setEditSpLink(e.target.value)}
                   className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full" />
               </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'نوع الدعم (الفئة)' : 'Sponsorship Tier'}</label>
+                <select
+                  value={editSpTier}
+                  onChange={(e) => setEditSpTier(e.target.value)}
+                  className="bg-surface-container border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2.5 px-3 text-xs text-on-surface cursor-pointer w-full"
+                >
+                  <option value="platinum">{locale === 'ar' ? '🏆 بلاتيني' : '🏆 Platinum'}</option>
+                  <option value="gold">{locale === 'ar' ? '🥇 ذهبي' : '🥇 Gold'}</option>
+                  <option value="silver">{locale === 'ar' ? '🥈 فضي' : '🥈 Silver'}</option>
+                  <option value="bronze">{locale === 'ar' ? '🥉 برونزي' : '🥉 Bronze'}</option>
+                </select>
+              </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setEditingSponsor(null)}
                   className="px-4 py-2 border border-outline-variant/30 text-secondary text-xs font-bold hover:bg-black/5 bg-transparent">
@@ -923,6 +1050,138 @@ export default function AdminPage() {
                   className="px-6 py-2 bg-[#c59e62] text-primary hover:bg-[#ffdeae] text-xs font-bold flex items-center gap-1.5 border-0"
                 >
                   {isSavingStudent && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
+                  {locale === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Memory Modal */}
+      {editingMemory && (
+        <div className="fixed inset-0 bg-black/65 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setEditingMemory(null)}
+              className="absolute top-4 right-4 text-primary hover:text-secondary bg-transparent border-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <h2 className="text-xl font-bold text-primary mb-6 border-b border-[#c59e62]/20 pb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#c59e62]">edit</span>
+              {locale === 'ar' ? 'تعديل الذكرى' : 'Edit Memory'}
+            </h2>
+            
+            {memoryEditSuccess && (
+              <div className="mb-4 p-3 bg-green-100 dark:bg-green-950/40 border border-green-500/20 text-green-700 dark:text-green-300 font-bold text-xs text-center">
+                {locale === 'ar' ? '✅ تم حفظ التغييرات بنجاح!' : '✅ Changes saved successfully!'}
+              </div>
+            )}
+
+            {memoryEditError && (
+              <div className="mb-4 p-3 bg-error-container border border-error/20 text-error font-bold text-xs text-center">
+                {memoryEditError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveMemory} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">
+                  {locale === 'ar' ? 'نوع الوسائط' : 'Media Type'}
+                </label>
+                <select
+                  value={editMemType}
+                  onChange={(e) => setEditMemType(e.target.value)}
+                  className="bg-surface-container border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2.5 px-3 text-xs text-on-surface cursor-pointer w-full"
+                >
+                  <option value="image">{locale === 'ar' ? 'صورة' : 'Image'}</option>
+                  <option value="video">{locale === 'ar' ? 'فيديو' : 'Video'}</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'العنوان بالعربية' : 'Title (Arabic)'}</label>
+                <input 
+                  type="text" 
+                  value={editMemTitleAr}
+                  onChange={(e) => setEditMemTitleAr(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'العنوان بالإنجليزية' : 'Title (English)'}</label>
+                <input 
+                  type="text" 
+                  value={editMemTitleEn}
+                  onChange={(e) => setEditMemTitleEn(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">
+                  {editMemType === 'image' 
+                    ? (locale === 'ar' ? 'رابط الصورة الإلكتروني' : 'Image URL')
+                    : (locale === 'ar' ? 'رابط الفيديو الإلكتروني' : 'Video URL')
+                  }
+                </label>
+                <input 
+                  type="url" 
+                  value={editMemUrl}
+                  onChange={(e) => setEditMemUrl(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  required
+                />
+              </div>
+
+              {editMemType === 'video' && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-secondary font-bold">
+                    {locale === 'ar' ? 'رابط صورة الغلاف الخاص بالفيديو (اختياري)' : 'Video Cover Image URL (Optional)'}
+                  </label>
+                  <input 
+                    type="url" 
+                    value={editMemCoverUrl}
+                    onChange={(e) => setEditMemCoverUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'التصنيف' : 'Category'}</label>
+                <select
+                  value={editMemCat}
+                  onChange={(e) => setEditMemCat(e.target.value)}
+                  className="bg-surface-container border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2.5 px-3 text-xs text-on-surface cursor-pointer w-full"
+                >
+                  <option value="ceremony">{locale === 'ar' ? 'الحفل' : 'Ceremony'}</option>
+                  <option value="projects">{locale === 'ar' ? 'مشاريع التخرج' : 'Graduation Projects'}</option>
+                  <option value="trips">{locale === 'ar' ? 'الرحلات' : 'Trips'}</option>
+                  <option value="campus">{locale === 'ar' ? 'الحياة الجامعية' : 'Campus Life'}</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setEditingMemory(null)}
+                  className="px-4 py-2 border border-outline-variant/30 text-secondary text-xs font-bold hover:bg-black/5 bg-transparent"
+                >
+                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSavingMemory}
+                  className="px-6 py-2 bg-[#c59e62] text-primary hover:bg-[#ffdeae] text-xs font-bold flex items-center gap-1.5 border-0"
+                >
+                  {isSavingMemory && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
                   {locale === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
                 </button>
               </div>

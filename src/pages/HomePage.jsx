@@ -68,14 +68,14 @@ export default function HomePage({ setActivePage }) {
     let index = 0;
     setTypedText('');
     const interval = setInterval(() => {
-      setTypedText(prev => prev + subtitleText.charAt(index));
+      setTypedText(subtitleText.slice(0, index + 1));
       index++;
-      if (index >= subtitleText.length) {
+      if (index > subtitleText.length) {
         clearInterval(interval);
       }
     }, 50); // Speed of typing
     return () => clearInterval(interval);
-  }, [locale]);
+  }, [locale, subtitleText]);
 
   // Statistics counters animation
   const [animStats, setAnimStats] = useState({
@@ -115,8 +115,8 @@ export default function HomePage({ setActivePage }) {
   const [commenced, setCommenced] = useState(false);
 
   useEffect(() => {
-    // Graduation Ceremony target: July 20, 2026
-    const targetTime = new Date('2026-07-20T09:00:00').getTime();
+    // Graduation Ceremony target: July 20, 2026 at 8:00 AM
+    const targetTime = new Date('2026-07-20T08:00:00').getTime();
 
     const interval = setInterval(() => {
       const diff = targetTime - Date.now();
@@ -228,8 +228,19 @@ export default function HomePage({ setActivePage }) {
         {/* Decorative Grid Lines Overlay (Architectural feel) */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(197,158,98,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(197,158,98,0.05)_1px,transparent_1px)] bg-[size:50px_50px] z-0"></div>
 
-        <div className="relative z-10 max-w-container-max mx-auto flex flex-col items-center gap-10">
+        <div className="relative z-10 max-w-container-max mx-auto flex flex-col items-center gap-6">
           
+          {/* Cohort Logo with Glowing Golden Borders */}
+          <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full p-1 bg-gradient-to-r from-[#c59e62] via-[#ffdeae] to-[#c59e62] shadow-[0_0_25px_rgba(197,158,98,0.7)] hover:shadow-[0_0_40px_rgba(197,158,98,0.95)] transition-all duration-500 flex items-center justify-center animate-fade-in mb-2">
+            <img 
+              src="https://prsxwxpsuhkigtrntaqn.supabase.co/storage/v1/object/public/gallery/WhatsApp%20Image%202026-07-07%20at%2010.25.23%20PM.jpeg" 
+              alt={locale === 'ar' ? 'شعار الدفعة' : 'Cohort Logo'} 
+              className="w-full h-full object-cover rounded-full select-none"
+            />
+            {/* Ambient Pulse Ring */}
+            <div className="absolute inset-0 rounded-full border-2 border-[#c59e62] animate-ping opacity-20 pointer-events-none" style={{ animationDuration: '3s' }}></div>
+          </div>
+
           {/* Decorative Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 border border-[#c59e62]/40 rounded-full bg-[#FAF8F5]/5 backdrop-blur-md text-[#c59e62] text-xs font-bold tracking-widest uppercase animate-fade-in">
             <span className="material-symbols-outlined text-sm">school</span>
@@ -296,7 +307,7 @@ export default function HomePage({ setActivePage }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* IT card */}
             <div className="bg-background border border-[#c59e62]/20 p-8 hover:border-[#c59e62] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
+              <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full rtl:rounded-bl-none rtl:rounded-br-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
                 <span className="material-symbols-outlined text-3xl text-[#c59e62]">{departmentsInfo.it.icon}</span>
               </div>
               <div className="space-y-4">
@@ -313,7 +324,7 @@ export default function HomePage({ setActivePage }) {
 
             {/* Architecture card */}
             <div className="bg-background border border-[#c59e62]/20 p-8 hover:border-[#c59e62] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
+              <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full rtl:rounded-bl-none rtl:rounded-br-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
                 <span className="material-symbols-outlined text-3xl text-[#c59e62]">{departmentsInfo.arch.icon}</span>
               </div>
               <div className="space-y-4">
@@ -385,33 +396,33 @@ export default function HomePage({ setActivePage }) {
               </p>
             </div>
           ) : (
-            <div className="flex justify-center gap-6 md:gap-10 bg-surface-container-high p-10 border border-[#c59e62]/20 max-w-xl mx-auto shadow-2xl relative">
+            <div className="flex justify-center gap-2 sm:gap-6 md:gap-10 bg-surface-container-high p-6 sm:p-10 border border-[#c59e62]/20 max-w-xl mx-auto shadow-2xl relative w-full overflow-hidden">
               
               {/* Pocket Watch Frame decorations */}
               <div className="absolute -top-3 left-4 w-6 h-1 bg-[#c59e62]"></div>
               <div className="absolute -top-3 right-4 w-6 h-1 bg-[#c59e62]"></div>
 
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.days)}</span>
-                <span className="text-xs text-secondary uppercase font-bold mt-2">{t('days')}</span>
+              <div className="flex flex-col items-center min-w-[55px] sm:min-w-[70px]">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.days)}</span>
+                <span className="text-[10px] sm:text-xs text-secondary uppercase font-bold mt-2">{t('days')}</span>
               </div>
-              <div className="w-px bg-outline-variant/30 h-16 self-center"></div>
+              <div className="w-px bg-outline-variant/30 h-12 sm:h-16 self-center"></div>
               
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.hours)}</span>
-                <span className="text-xs text-secondary uppercase font-bold mt-2">{t('hours')}</span>
+              <div className="flex flex-col items-center min-w-[55px] sm:min-w-[70px]">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.hours)}</span>
+                <span className="text-[10px] sm:text-xs text-secondary uppercase font-bold mt-2">{t('hours')}</span>
               </div>
-              <div className="w-px bg-outline-variant/30 h-16 self-center"></div>
+              <div className="w-px bg-outline-variant/30 h-12 sm:h-16 self-center"></div>
               
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.minutes)}</span>
-                <span className="text-xs text-secondary uppercase font-bold mt-2">{t('mins')}</span>
+              <div className="flex flex-col items-center min-w-[55px] sm:min-w-[70px]">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tight font-mono">{formatTime(timeLeft.minutes)}</span>
+                <span className="text-[10px] sm:text-xs text-secondary uppercase font-bold mt-2">{t('mins')}</span>
               </div>
-              <div className="w-px bg-outline-variant/30 h-16 self-center"></div>
+              <div className="w-px bg-outline-variant/30 h-12 sm:h-16 self-center"></div>
 
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="text-4xl md:text-5xl font-black text-[#c59e62] tracking-tight font-mono animate-pulse">{formatTime(timeLeft.seconds)}</span>
-                <span className="text-xs text-secondary uppercase font-bold mt-2">{locale === 'ar' ? 'ثانية' : 'Sec'}</span>
+              <div className="flex flex-col items-center min-w-[55px] sm:min-w-[70px]">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-[#c59e62] tracking-tight font-mono animate-pulse">{formatTime(timeLeft.seconds)}</span>
+                <span className="text-[10px] sm:text-xs text-secondary uppercase font-bold mt-2">{locale === 'ar' ? 'ثانية' : 'Sec'}</span>
               </div>
             </div>
           )}

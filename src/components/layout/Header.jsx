@@ -125,9 +125,15 @@ export default function Header({ activePage, setActivePage }) {
         </div>
 
         {/* Mobile Buttons */}
-        
-        <div className="xl:hidden flex items-center gap-2">
-          
+        <div className="xl:hidden flex items-center gap-3">
+          {!user && (
+            <button 
+              onClick={() => handleNavClick('login')}
+              className="bg-[#c59e62] text-primary font-bold text-xs px-4 py-2 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap"
+            >
+              {locale === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+            </button>
+          )}
           
           <button 
             onClick={() => setIsOpen(!isOpen)} 

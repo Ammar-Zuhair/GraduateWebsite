@@ -44,6 +44,107 @@ export default function MemoriesPage() {
     { id: 'campus', label: locale === 'ar' ? 'الحياة الجامعية' : 'Campus Life' }
   ];
 
+  const getEmbedUrl = (url) => {
+    if (!url) return '';
+    
+    // YouTube Check
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      if (url.includes('/embed/')) return url;
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      if (match && match[2].length === 11) {
+        return `https://www.youtube.com/embed/${match[2]}`;
+      }
+    }
+    
+    // Instagram Check
+    if (url.includes('instagram.com')) {
+      let cleanUrl = url.trim();
+      if (cleanUrl.endsWith('/')) {
+        cleanUrl = cleanUrl.slice(0, -1);
+      }
+      if (!cleanUrl.endsWith('/embed')) {
+        return `${cleanUrl}/embed/`;
+      }
+      return `${cleanUrl}/`;
+    }
+
+    // TikTok Check
+    if (url.includes('tiktok.com')) {
+      const match = url.match(/\/video\/(\d+)/);
+      if (match) {
+        return `https://www.tiktok.com/embed/v2/${match[1]}`;
+      }
+      if (url.includes('/embed/')) return url;
+    }
+
+    // X/Twitter Check
+    if (url.includes('twitter.com') || url.includes('x.com')) {
+      const match = url.match(/\/status\/(\d+)/);
+      if (match) {
+        return `https://platform.twitter.com/embed/Tweet.html?id=${match[1]}&theme=dark`;
+      }
+    }
+
+    // Google Drive Check
+    if (url.includes('drive.google.com')) {
+      if (url.includes('/view')) {
+        return url.replace(/\/view.*/, '/preview');
+      }
+      return url;
+    }
+
+    // Dropbox Check
+    if (url.includes('dropbox.com')) {
+      return url.replace('dl=0', 'raw=1');
+    }
+    
+    return url;
+  };
+
+  const isDirectVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) || url.includes('raw=1');
+  };
+
+  const getVideoThumbnail = (url) => {
+    if (!url) return '';
+    
+    // YouTube Check
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      if (match && match[2].length === 11) {
+        return `https://img.youtube.com/vi/${match[2]}/mqdefault.jpg`;
+      }
+    }
+    
+    // Instagram Check
+    if (url.includes('instagram.com')) {
+      return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=600&auto=format&fit=crop';
+    }
+
+    // TikTok Check
+    if (url.includes('tiktok.com')) {
+      return 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop';
+    }
+
+    // X/Twitter Check
+    if (url.includes('twitter.com') || url.includes('x.com')) {
+      return 'https://images.unsplash.com/photo-1611605698335-8b15d27e03f3?q=80&w=600&auto=format&fit=crop';
+    }
+
+    // Google Drive Check
+    if (url.includes('drive.google.com')) {
+      const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (match) {
+        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
+      }
+    }
+    
+    return 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600&auto=format&fit=crop';
+  };
+
   return (
     <div className="w-full max-w-container-max mx-auto px-4 md:px-8 py-12 md:py-24">
       {/* Title */}
@@ -91,39 +192,36 @@ export default function MemoriesPage() {
                 src={item.url}
                 alt={item[`title_${locale}`]}
               />
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center z-10 gap-3">
-                <span className="text-xl text-[#c59e62] font-bold">{item[`title_${locale}`]}</span>
-                <span className="text-white/60 text-xs font-bold">{new Date(item.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}</span>
+              {/* Overlay with magnifying glass zoom icon */}
+              <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+                <span className="material-symbols-outlined text-4xl text-white font-bold bg-[#c59e62]/90 p-3 rounded-full shadow-lg">
+                  zoom_in
+                </span>
               </div>
             </div>
 
-            {/* Interactions Bar */}
-            <div className="p-4 flex justify-between items-center bg-[#F5E6D3] dark:bg-surface-container border-t border-outline/10 select-none">
-              <div className="flex gap-4">
-                <button
-                  onClick={() => updateMemoryLikes(item.id, (item.likes || 0) + 1)}
-                  className="text-secondary hover:text-primary transition-colors flex items-center gap-2 group/btn p-2"
-                  aria-label="Like Memory"
+            {/* Info under the image */}
+            <div className="p-4 flex flex-col gap-1 bg-[#F5E6D3] dark:bg-surface-container border-t border-outline-variant/20">
+              <div className="flex justify-between items-start gap-3">
+                <h3 className="font-bold text-primary text-base leading-tight text-right rtl:text-right ltr:text-left">
+                  {item[`title_${locale}`]}
+                </h3>
+                
+                {/* Direct Download button */}
+                <a 
+                  href={item.url} 
+                  download={`memory_${item.id}.jpg`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-secondary hover:text-[#c59e62] transition-colors p-1 flex items-center justify-center shrink-0"
+                  aria-label="Download Image"
                 >
-                  <span className="material-symbols-outlined text-2xl font-bold group-hover/btn:scale-110 transition-transform">
-                    favorite
-                  </span>
-                  <span className="text-sm font-bold text-primary">{item.likes || 0}</span>
-                </button>
+                  <span className="material-symbols-outlined text-xl font-bold">download</span>
+                </a>
               </div>
-              
-              {/* Direct Download button */}
-              <a 
-                href={item.url} 
-                download={`memory_${item.id}.jpg`}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-outline hover:text-primary transition-colors p-2 flex items-center justify-center"
-                aria-label="Download Image"
-              >
-                <span className="material-symbols-outlined text-2xl font-bold">download</span>
-              </a>
+              <span className="text-secondary text-[11px] font-bold text-right rtl:text-right ltr:text-left">
+                {new Date(item.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+              </span>
             </div>
           </article>
         ))}
@@ -145,14 +243,24 @@ export default function MemoriesPage() {
               onClick={() => setSelectedVideo(video)}
               className="bg-[#F5E6D3] dark:bg-surface-container border border-outline-variant/20 p-4 shadow-sm hover:shadow-md cursor-pointer group flex flex-col justify-between"
             >
-              <div className="relative w-full aspect-video overflow-hidden">
-                <img
-                  src={video.url}
-                  alt=""
-                  className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500"
-                />
+              <div className="relative w-full aspect-video overflow-hidden bg-black">
+                {isDirectVideo(video.url) ? (
+                  <video
+                    src={video.url}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                  />
+                ) : (
+                  <img
+                    src={video.cover_url || getVideoThumbnail(video.url)}
+                    alt=""
+                    className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                  />
+                )}
                 {/* Play Button Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/50 z-10">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/20 z-10">
                   <span className="material-symbols-outlined text-5xl text-[#c59e62] font-bold group-hover:scale-110 transition-transform">
                     play_circle
                   </span>
@@ -183,15 +291,24 @@ export default function MemoriesPage() {
         title={selectedVideo ? selectedVideo[`title_${locale}`] : ''}
       >
         {selectedVideo && (
-          <div className="relative aspect-video w-full">
-            <iframe
-              src={selectedVideo.url} // Assuming URL for video is youtube embed link
-              title="Video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 shadow-sm"
-            ></iframe>
+          <div className="relative aspect-video w-full bg-black">
+            {isDirectVideo(selectedVideo.url) ? (
+              <video
+                src={selectedVideo.url}
+                controls
+                autoPlay
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={getEmbedUrl(selectedVideo.url)}
+                title="Video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full border-0 shadow-sm"
+              ></iframe>
+            )}
           </div>
         )}
       </Modal>

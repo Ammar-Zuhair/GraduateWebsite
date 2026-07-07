@@ -108,17 +108,21 @@ export const DataProvider = ({ children }) => {
   };
 
   const deleteWish = async (id) => {
-    const { error } = await supabase.from('wishes').delete().eq('id', id);
-    if (!error) {
+    const { data, error } = await supabase.from('wishes').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       setWishes(prev => prev.filter(w => w.id !== id));
+      return { success: true };
     }
+    return { success: false, error: error?.message || 'RLS Policy Blocked Deletion' };
   };
 
   const deleteStudent = async (id) => {
-    const { error } = await supabase.from('students').delete().eq('id', id);
-    if (!error) {
+    const { data, error } = await supabase.from('students').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       setStudents(prev => prev.filter(s => s.id !== id));
+      return { success: true };
     }
+    return { success: false, error: error?.message || 'RLS Policy Blocked Deletion' };
   };
 
   const updateStudentStatus = async (id, newStatus) => {
@@ -178,14 +182,16 @@ export const DataProvider = ({ children }) => {
         title_en: memoryData.title_en || memoryData.title || '',
         url: memoryData.url || memoryData.src || '',
         category: memoryData.category || 'ceremony',
-        media_type: memoryData.media_type || memoryData.mediaType || 'image'
+        media_type: memoryData.media_type || memoryData.mediaType || 'image',
+        cover_url: memoryData.cover_url || null
       }
     ]).select();
     
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       setMemories(prev => [data[0], ...prev]);
+      return { success: true, data: data[0] };
     }
-    return { success: !error, error };
+    return { success: false, error: error?.message || 'RLS Policy Blocked Insertion/Reading' };
   };
 
   const updateMemoryLikes = async (id, newLikes) => {
@@ -196,10 +202,33 @@ export const DataProvider = ({ children }) => {
   };
 
   const deleteMemory = async (id) => {
-    const { error } = await supabase.from('memories').delete().eq('id', id);
-    if (!error) {
+    const { data, error } = await supabase.from('memories').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       setMemories(prev => prev.filter(m => m.id !== id));
+      return { success: true };
     }
+    return { success: false, error: error?.message || 'RLS Policy Blocked Deletion' };
+  };
+
+  const updateMemory = async (id, memoryData) => {
+    const { data, error } = await supabase
+      .from('memories')
+      .update({
+        title_ar: memoryData.title_ar,
+        title_en: memoryData.title_en,
+        url: memoryData.url,
+        category: memoryData.category,
+        media_type: memoryData.media_type,
+        cover_url: memoryData.cover_url || null
+      })
+      .eq('id', id)
+      .select();
+
+    if (!error && data && data.length > 0) {
+      setMemories(prev => prev.map(m => m.id === id ? data[0] : m));
+      return { success: true };
+    }
+    return { success: false, error: error?.message };
   };
 
   const addNewsItem = async (newsData) => {
@@ -234,7 +263,8 @@ export const DataProvider = ({ children }) => {
         description_ar: sponsorData.desc,
         description_en: sponsorData.desc,
         logo_url: sponsorData.logo,
-        website_link: sponsorData.link
+        website_link: sponsorData.link,
+        tier: sponsorData.tier || 'gold'
       }
     ]).select();
     
@@ -263,7 +293,8 @@ export const DataProvider = ({ children }) => {
         description_ar: sponsorData.desc,
         description_en: sponsorData.desc,
         logo_url: sponsorData.logo,
-        website_link: sponsorData.link
+        website_link: sponsorData.link,
+        tier: sponsorData.tier || 'gold'
       })
       .eq('id', id)
       .select();
@@ -280,7 +311,7 @@ export const DataProvider = ({ children }) => {
   return (
     <DataContext.Provider value={{
       students, memories, news, sponsors, wishes, stats, loading,
-      addWish, deleteWish, deleteStudent, addMemory, deleteMemory, updateMemoryLikes,
+      addWish, deleteWish, deleteStudent, addMemory, deleteMemory, updateMemoryLikes, updateMemory,
       updateStudentStatus, updateWishStatus, updateStudent,
       addNewsItem, deleteNewsItem, addSponsorItem, deleteSponsorItem, updateSponsorItem
     }}>
