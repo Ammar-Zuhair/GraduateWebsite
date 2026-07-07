@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function StudentRegisterPage({ setActivePage }) {
+export default function StudentRegisterPage({ setActivePage, inviteToken }) {
   const { locale } = useLanguage();
   const { registerStudent } = useAuth();
 
   // Extract query token
-  const queryParams = new URLSearchParams(window.location.search);
-  const inviteToken = queryParams.get('token');
-  const isAdminInvite = inviteToken === 'admin2026-secure-invite';
-  const isValidInvite = inviteToken === 'grad2026-secure-invite' || isAdminInvite;
+  const tokenFromUrl = inviteToken || new URLSearchParams(window.location.search).get('token');
+  const isAdminInvite = tokenFromUrl === 'admin2026-secure-invite';
+  const isValidInvite = tokenFromUrl === 'grad2026-secure-invite' || isAdminInvite;
 
   // Form states
   const [studentNameAr, setStudentNameAr] = useState('');

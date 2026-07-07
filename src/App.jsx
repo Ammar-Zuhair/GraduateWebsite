@@ -71,6 +71,7 @@ function AppContent() {
   const { students } = useData();
   const [activePage, setActivePage] = useState('home');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [inviteToken, setInviteToken] = useState(null);
 
   // Invitation link hook detection
   useEffect(() => {
@@ -79,6 +80,7 @@ function AppContent() {
     let shouldClear = false;
 
     if (token === 'grad2026-secure-invite' || token === 'admin2026-secure-invite') {
+      setInviteToken(token);
       setActivePage('register-student');
       shouldClear = true;
     }
@@ -122,7 +124,7 @@ function AppContent() {
       case 'admin':
         return <AdminPage />;
       case 'register-student':
-        return <StudentRegisterPage setActivePage={setActivePage} />;
+        return <StudentRegisterPage setActivePage={setActivePage} inviteToken={inviteToken} />;
       case 'login':
         return <LoginPage setActivePage={setActivePage} />;
       case 'my-profile':
