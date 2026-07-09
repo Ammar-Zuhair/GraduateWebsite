@@ -37,7 +37,7 @@ export default function DeanSpeechPage() {
       {/* Title Header */}
       <div className="text-center mb-16 relative">
         <h1 className="text-display-lg text-primary font-bold mb-4">
-          {locale === 'ar' ? 'كلمات أعضاء هيئة التدريس والدكاترة' : 'Faculty & Doctors Speeches'}
+          {locale === 'ar' ? 'كلمات أعضاء هيئة التدريس ' : 'Faculty & Doctors Speeches'}
         </h1>
         <div className="w-24 h-px bg-[#c59e62] mx-auto mt-6"></div>
       </div>

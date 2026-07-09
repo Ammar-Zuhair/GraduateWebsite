@@ -51,7 +51,7 @@ export default function HomePage({ setActivePage }) {
     {
       ar: "من تقنية الفكر نرسخ الغد، ومن عمارة الأرض نشيد المستقبل، ومن توازن الاقتصاد نبني النجاح.",
       en: "With cognitive technology we establish tomorrow, with structural architecture we build the future, and with economic balance we build success.",
-      author: "دفعة تقنية ومعمار ومحاسبة"
+      author: "دفعة تقنية ومعمار"
     },
     {
       ar: "ليست البداية هي المهمة، بل الطريقة التي ننهي بها الرحلة لنبدأ أخرى أعظم.",
@@ -82,7 +82,7 @@ export default function HomePage({ setActivePage }) {
 
   // Subtitle typewriter effect
   const subtitleText = locale === 'ar' 
-    ? 'تقنية ومعمار ومحاسبة: تمازج الإبداع البرمجي، الجمال الهيكلي، والتوازن المالي لدفعة تخرج 2026' 
+    ? 'تقنية ومعمار: تمازج الإبداع البرمجي، الجمال الهيكلي، والتوازن المالي لدفعة تخرج 2026' 
     : 'Tech, Arch & Accounting: The fusion of software innovation, structural beauty, and financial balance for the Class of 2026';
   
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function HomePage({ setActivePage }) {
 
           <div className="space-y-6 max-w-4xl">
             <h1 className="text-display-lg font-black text-white leading-tight drop-shadow-md select-none tracking-tight">
-              {locale === 'ar' ? 'دفعة تقنية ومعمار ومحاسبة' : 'Tech, Arch & Accounting Cohort'}
+              {locale === 'ar' ? 'دفعة تقنية ومعمار' : 'Tech, Arch & Accounting Cohort'}
               <span className="block text-gradient bg-gradient-to-r from-[#ffdeae] via-[#c59e62] to-[#ffdeae] bg-clip-text text-transparent mt-3 font-serif">
                 2026
               </span>
@@ -322,7 +322,7 @@ export default function HomePage({ setActivePage }) {
         <section className="w-full py-8 bg-surface border-b border-[#c59e62]/20 overflow-hidden relative select-none">
           <div className="max-w-container-max mx-auto px-4 mb-4 text-center">
             <span className="text-xs text-[#c59e62] font-black uppercase tracking-widest block mb-1">
-              {locale === 'ar' ? 'مسيرة خريجي دفعة 2026' : 'Class of 2026 Graduate Parade'}
+              {locale === 'ar' ? 'مسيرة خريجي دفعة تقنية ومعمار' : 'Class of 2026 Graduate Parade'}
             </span>
           </div>
 
