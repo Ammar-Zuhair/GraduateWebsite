@@ -11,6 +11,7 @@ export const DataProvider = ({ children }) => {
   const [wishes, setWishes] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [visitorCount, setVisitorCount] = useState(1520); // Default placeholder base
+  const [totalWishesCount, setTotalWishesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchAllData = async () => {
@@ -47,6 +48,19 @@ export const DataProvider = ({ children }) => {
         }
       } catch (e) {
         console.warn("Could not load doctors from Supabase", e);
+      }
+
+      // Fetch total wishes count via Security Definer RPC (bypasses RLS SELECT restrictions for guest users)
+      try {
+        const { data: rpcCount, error: rpcError } = await supabase.rpc('get_total_wishes_count');
+        if (!rpcError && rpcCount !== null) {
+          setTotalWishesCount(Number(rpcCount));
+        } else {
+          setTotalWishesCount(wishesData ? wishesData.length : 0);
+        }
+      } catch (e) {
+        console.warn("get_total_wishes_count RPC failed:", e);
+        setTotalWishesCount(wishesData ? wishesData.length : 0);
       }
     } catch (error) {
       console.error("Error fetching data from Supabase:", error);
@@ -97,7 +111,7 @@ export const DataProvider = ({ children }) => {
     projects: 0, // Placeholder
     photos: memories.filter(m => m.media_type === 'image').length,
     videos: memories.filter(m => m.media_type === 'video').length,
-    wishes: wishes.filter(w => w.status === 'approved' || w.is_approved !== false).length,
+    wishes: totalWishesCount,
     visitors: visitorCount,
     depts: 2
   };
@@ -116,6 +130,9 @@ export const DataProvider = ({ children }) => {
       }
     ]);
     
+    if (!error) {
+      setTotalWishesCount(prev => prev + 1);
+    }
     return { success: !error, error };
   };
 
@@ -123,6 +140,7 @@ export const DataProvider = ({ children }) => {
     const { data, error } = await supabase.from('wishes').delete().eq('id', id).select();
     if (!error && data && data.length > 0) {
       setWishes(prev => prev.filter(w => w.id !== id));
+      setTotalWishesCount(prev => Math.max(0, prev - 1));
       return { success: true };
     }
     return { success: false, error: error?.message || 'RLS Policy Blocked Deletion' };

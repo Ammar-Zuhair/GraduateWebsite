@@ -188,4 +188,13 @@ ON public.doctors FOR DELETE USING (
   OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
 );
 
-
+-- 10. Helper function to get total wishes count (bypassing RLS private restrictions for homepage stats)
+CREATE OR REPLACE FUNCTION public.get_total_wishes_count()
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN (SELECT count(*) FROM public.wishes);
+END;
+$$;
