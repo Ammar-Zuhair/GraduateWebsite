@@ -103,6 +103,7 @@ export default function CreateStudentProfilePage({ setActivePage }) {
             >
               <option value="it">{locale === 'ar' ? 'تقنية معلومات' : 'Information Technology'}</option>
               <option value="arch">{locale === 'ar' ? 'هندسة معمارية' : 'Architecture'}</option>
+              <option value="acc">{locale === 'ar' ? 'محاسبة' : 'Accounting'}</option>
             </select>
           </div>
 

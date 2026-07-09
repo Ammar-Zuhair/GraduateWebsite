@@ -17,6 +17,7 @@ export default function StudentsPage({ viewStudentProfile }) {
   const getMajorName = (major) => {
     if (major === 'it') return locale === 'ar' ? 'تقنية معلومات' : 'Information Technology';
     if (major === 'arch') return locale === 'ar' ? 'هندسة معمارية' : 'Architecture';
+    if (major === 'acc') return locale === 'ar' ? 'محاسبة' : 'Accounting';
     return major;
   };
 
@@ -79,6 +80,7 @@ export default function StudentsPage({ viewStudentProfile }) {
             <option value="">{locale === 'ar' ? 'جميع التخصصات' : 'All Majors'}</option>
             <option value="arch">{locale === 'ar' ? 'هندسة معمارية' : 'Architecture'}</option>
             <option value="it">{locale === 'ar' ? 'تقنية معلومات' : 'Information Technology'}</option>
+            <option value="acc">{locale === 'ar' ? 'محاسبة' : 'Accounting'}</option>
           </select>
           
           {/* Sorting */}

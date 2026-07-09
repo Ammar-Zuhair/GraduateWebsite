@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function StudentWishesPage({ studentId, onBack }) {
   const { locale } = useLanguage();
-  const { students, wishes } = useData();
+  const { students, wishes, deleteWish } = useData();
   const { user } = useAuth();
 
   const student = students.find((g) => g.id === studentId);
@@ -15,10 +15,9 @@ export default function StudentWishesPage({ studentId, onBack }) {
   }
 
   const isOwner = user?.id === student.user_id;
-  const isAdmin = user?.role === 'admin';
 
-  // Privacy Protection: only allow the graduate owner or admin to see this wishes page
-  if (!isOwner && !isAdmin) {
+  // Privacy Protection: only allow the graduate owner to see this wishes page
+  if (!isOwner) {
     return (
       <div className="w-full max-w-container-max px-4 py-24 text-center flex flex-col items-center justify-center gap-4">
         <span className="material-symbols-outlined text-6xl text-[#c59e62]">lock</span>
@@ -34,8 +33,8 @@ export default function StudentWishesPage({ studentId, onBack }) {
     );
   }
 
-  // Calculate wishes for this student
-  const studentWishes = wishes.filter(w => w.student_id === student.id && (w.status === 'approved' || (w.status === undefined && w.is_approved !== false)));
+  // Calculate wishes for this student (approved or status undefined/all since they bypass admin approval now)
+  const studentWishes = wishes.filter(w => w.student_id === student.id);
   const wishesCount = studentWishes.length;
 
   return (
@@ -57,15 +56,15 @@ export default function StudentWishesPage({ studentId, onBack }) {
           </h1>
           <p className="text-secondary text-sm mt-1">
             {locale === 'ar' 
-              ? 'الرسائل والتهاني التي أرسلها لك الأهل والأصدقاء بمناسبة التخرج بعد مراجعة الإدارة.' 
-              : 'Messages and wishes sent to you by family and friends after admin review.'}
+              ? 'الرسائل والتهاني التي أرسلها لك الأهل والأصدقاء بمناسبة التخرج.' 
+              : 'Messages and wishes sent to you by family and friends.'}
           </p>
         </div>
         
         <div className="bg-[#FAF8F5] dark:bg-surface-container border border-[#c59e62]/20 px-6 py-4 flex flex-col items-center">
           <span className="text-3xl font-black text-[#c59e62]">{wishesCount}</span>
           <span className="text-xs text-primary/70 font-bold mt-1 uppercase tracking-wider">
-            {locale === 'ar' ? 'تهنئة معتمدة' : 'Approved Wishes'}
+            {locale === 'ar' ? 'تهنئة مستلمة' : 'Received Wishes'}
           </span>
         </div>
       </div>
@@ -82,9 +81,25 @@ export default function StudentWishesPage({ studentId, onBack }) {
                 <span className="material-symbols-outlined text-[#c59e62] text-3xl opacity-60" style={{ fontVariationSettings: "'FILL' 1" }}>
                   format_quote
                 </span>
-                <span className="text-[10px] text-outline">
-                  {new Date(wish.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-outline">
+                    {new Date(wish.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm(locale === 'ar' ? 'هل أنت متأكد من حذف هذه التهنئة؟' : 'Are you sure you want to delete this wish?')) {
+                        const res = await deleteWish(wish.id);
+                        if (!res.success) {
+                          alert(locale === 'ar' ? 'فشل حذف التهنئة: ' + res.error : 'Failed to delete wish: ' + res.error);
+                        }
+                      }
+                    }}
+                    className="text-error hover:bg-error/10 p-1 rounded-full cursor-pointer flex items-center justify-center transition-colors border-0 bg-transparent"
+                    title={locale === 'ar' ? 'حذف التهنئة' : 'Delete wish'}
+                  >
+                    <span className="material-symbols-outlined text-xs font-bold">delete</span>
+                  </button>
+                </div>
               </div>
 
               <p className="text-base text-primary leading-relaxed italic flex-grow mb-6">

@@ -29,6 +29,15 @@ export default function HomePage({ setActivePage }) {
         : 'From sketching lines to 3D modeling, our architects blended art with science to design structures balancing functional beauty and sustainability.',
       stats: locale === 'ar' ? 'مخططات وصروح مستدامة' : 'Sustainable design plans',
       icon: 'architecture'
+    },
+    acc: {
+      title: locale === 'ar' ? 'المحاسبة' : 'Accounting',
+      concept: locale === 'ar' ? 'ندير الحسابات، نحلل البيانات المالية، ونبني أساس الاقتصاد.' : 'We manage accounts, analyze financial data, and build the foundation of economy.',
+      manifesto: locale === 'ar'
+        ? 'بين الأرقام والموازنات والقوائم المالية، سطر طلابنا مسيرة ناجحة في إدارة الموارد وصناعة القرارات المالية الذكية.'
+        : 'Between numbers, balance sheets, and financial statements, our students paved a successful path in resource management and smart financial decision making.',
+      stats: locale === 'ar' ? 'تحليلات وموازنات ذكية' : 'Smart analysis & balance sheets',
+      icon: 'payments'
     }
   };
 
@@ -40,9 +49,9 @@ export default function HomePage({ setActivePage }) {
       author: "أحمد شوقي"
     },
     {
-      ar: "من تقنية الفكر نرسخ الغد، ومن عمارة الأرض نشيد المستقبل.",
-      en: "With cognitive technology we establish tomorrow, and with structural architecture we build the future.",
-      author: "دفعة تقنية ومعمار"
+      ar: "من تقنية الفكر نرسخ الغد، ومن عمارة الأرض نشيد المستقبل، ومن توازن الاقتصاد نبني النجاح.",
+      en: "With cognitive technology we establish tomorrow, with structural architecture we build the future, and with economic balance we build success.",
+      author: "دفعة تقنية ومعمار ومحاسبة"
     },
     {
       ar: "ليست البداية هي المهمة، بل الطريقة التي ننهي بها الرحلة لنبدأ أخرى أعظم.",
@@ -50,6 +59,18 @@ export default function HomePage({ setActivePage }) {
       author: "حكمة خريج"
     }
   ];
+
+  // Shuffled graduates state for horizontal marquee
+  const [shuffledStudents, setShuffledStudents] = useState([]);
+
+  useEffect(() => {
+    if (students.length > 0) {
+      const approved = students.filter(s => s.status === 'approved' || (s.status === undefined && s.is_approved !== false));
+      // Shuffle randomly
+      const shuffled = [...approved].sort(() => Math.random() - 0.5);
+      setShuffledStudents(shuffled);
+    }
+  }, [students]);
 
   // Rotate quotes every 6 seconds
   useEffect(() => {
@@ -61,8 +82,8 @@ export default function HomePage({ setActivePage }) {
 
   // Subtitle typewriter effect
   const subtitleText = locale === 'ar' 
-    ? 'تقنية ومعمار: تمازج الإبداع البرمجي والجمال الهيكلي لدفعة تخرج 2026' 
-    : 'Tech & Arch: The fusion of software innovation and structural beauty for the Class of 2026';
+    ? 'تقنية ومعمار ومحاسبة: تمازج الإبداع البرمجي، الجمال الهيكلي، والتوازن المالي لدفعة تخرج 2026' 
+    : 'Tech, Arch & Accounting: The fusion of software innovation, structural beauty, and financial balance for the Class of 2026';
   
   useEffect(() => {
     let index = 0;
@@ -249,7 +270,7 @@ export default function HomePage({ setActivePage }) {
 
           <div className="space-y-6 max-w-4xl">
             <h1 className="text-display-lg font-black text-white leading-tight drop-shadow-md select-none tracking-tight">
-              {locale === 'ar' ? 'دفعة تقنية ومعمار' : 'Tech & Arch Cohort'}
+              {locale === 'ar' ? 'دفعة تقنية ومعمار ومحاسبة' : 'Tech, Arch & Accounting Cohort'}
               <span className="block text-gradient bg-gradient-to-r from-[#ffdeae] via-[#c59e62] to-[#ffdeae] bg-clip-text text-transparent mt-3 font-serif">
                 2026
               </span>
@@ -296,6 +317,93 @@ export default function HomePage({ setActivePage }) {
         </div>
       </section>
 
+      {/* Graduates Marquee Ticker */}
+      {shuffledStudents.length > 0 && (
+        <section className="w-full py-8 bg-surface border-b border-[#c59e62]/20 overflow-hidden relative select-none">
+          <div className="max-w-container-max mx-auto px-4 mb-4 text-center">
+            <span className="text-xs text-[#c59e62] font-black uppercase tracking-widest block mb-1">
+              {locale === 'ar' ? 'مسيرة خريجي دفعة 2026' : 'Class of 2026 Graduate Parade'}
+            </span>
+          </div>
+
+          <div className="graduates-marquee-wrapper">
+            <div className="graduates-marquee-container">
+              {/* First Set */}
+              {shuffledStudents.map((student, idx) => (
+                <div 
+                  key={`ticker-set1-${student.id}-${idx}`}
+                  onClick={() => setActivePage('profile', true, student.id)}
+                  className="flex items-center gap-4 bg-surface-container-high/65 hover:bg-[#c59e62]/10 border border-[#c59e62]/20 hover:border-[#c59e62] px-6 py-3.5 rounded-full shadow-sm cursor-pointer hover:scale-105 transition-all duration-300 shrink-0"
+                >
+                  <img 
+                    src={student.profile_image || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(student.name_ar)} 
+                    alt={student.name_ar} 
+                    className="w-10 h-10 rounded-full object-cover border border-[#c59e62]/30" 
+                  />
+                  <div className="flex flex-col text-left ltr:text-left rtl:text-right">
+                    <span className="text-sm font-bold text-primary leading-tight">{student.name_ar}</span>
+                    <span className="text-[10px] text-secondary font-bold mt-0.5 uppercase">
+                      {student.major === 'it' && (locale === 'ar' ? 'تقنية معلومات' : 'IT')}
+                      {student.major === 'arch' && (locale === 'ar' ? 'هندسة معمارية' : 'Architecture')}
+                      {student.major === 'acc' && (locale === 'ar' ? 'محاسبة' : 'Accounting')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {/* Duplicate Set for Infinite Scroll */}
+              {shuffledStudents.map((student, idx) => (
+                <div 
+                  key={`ticker-set2-${student.id}-${idx}`}
+                  onClick={() => setActivePage('profile', true, student.id)}
+                  className="flex items-center gap-4 bg-surface-container-high/65 hover:bg-[#c59e62]/10 border border-[#c59e62]/20 hover:border-[#c59e62] px-6 py-3.5 rounded-full shadow-sm cursor-pointer hover:scale-105 transition-all duration-300 shrink-0"
+                >
+                  <img 
+                    src={student.profile_image || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(student.name_ar)} 
+                    alt={student.name_ar} 
+                    className="w-10 h-10 rounded-full object-cover border border-[#c59e62]/30" 
+                  />
+                  <div className="flex flex-col text-left ltr:text-left rtl:text-right">
+                    <span className="text-sm font-bold text-primary leading-tight">{student.name_ar}</span>
+                    <span className="text-[10px] text-secondary font-bold mt-0.5 uppercase">
+                      {student.major === 'it' && (locale === 'ar' ? 'تقنية معلومات' : 'IT')}
+                      {student.major === 'arch' && (locale === 'ar' ? 'هندسة معمارية' : 'Architecture')}
+                      {student.major === 'acc' && (locale === 'ar' ? 'محاسبة' : 'Accounting')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <style dangerouslySetInnerHTML={{__html: `
+            .graduates-marquee-wrapper {
+              direction: ltr !important;
+              overflow: hidden;
+              width: 100%;
+              position: relative;
+              padding: 0.5rem 0;
+            }
+            .graduates-marquee-container {
+              display: flex;
+              width: max-content;
+              gap: 1.5rem;
+              animation: scroll-marquee-left 45s linear infinite;
+            }
+            .graduates-marquee-container:hover {
+              animation-play-state: paused;
+            }
+            @keyframes scroll-marquee-left {
+              0% {
+                transform: translateX(0);
+              }
+              100% {
+                transform: translateX(-50%);
+              }
+            }
+          `}} />
+        </section>
+      )}
+
       {/* Interactive Department Concept Showdown (Fusing IT & Architecture) */}
       <section className="py-24 w-full px-4 bg-surface-container relative">
         <div className="max-w-container-max mx-auto">
@@ -304,7 +412,7 @@ export default function HomePage({ setActivePage }) {
             <div className="w-24 h-px bg-[#c59e62] mx-auto mt-6"></div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* IT card */}
             <div className="bg-background border border-[#c59e62]/20 p-8 hover:border-[#c59e62] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
               <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full rtl:rounded-bl-none rtl:rounded-br-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
@@ -335,6 +443,23 @@ export default function HomePage({ setActivePage }) {
               </div>
               <div className="mt-8 pt-4 border-t border-outline-variant/30 flex items-center justify-between">
                 <span className="text-xs text-secondary font-bold">{departmentsInfo.arch.stats}</span>
+                <span className="material-symbols-outlined text-primary group-hover:translate-x-2 transition-transform duration-300">arrow_right_alt</span>
+              </div>
+            </div>
+
+            {/* Accounting card */}
+            <div className="bg-background border border-[#c59e62]/20 p-8 hover:border-[#c59e62] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+              <div className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-24 h-24 bg-[#c59e62]/5 rounded-bl-full rtl:rounded-bl-none rtl:rounded-br-full flex items-center justify-center group-hover:bg-[#c59e62]/10 transition-colors">
+                <span className="material-symbols-outlined text-3xl text-[#c59e62]">{departmentsInfo.acc.icon}</span>
+              </div>
+              <div className="space-y-4">
+                <span className="text-xs text-[#c59e62] font-bold uppercase tracking-widest">{locale === 'ar' ? 'المحاسبة' : 'Accounting'}</span>
+                <h3 className="text-2xl font-bold text-primary">{departmentsInfo.acc.title}</h3>
+                <p className="text-sm font-semibold text-secondary italic">"{departmentsInfo.acc.concept}"</p>
+                <p className="text-sm text-on-surface-variant leading-relaxed pt-2">{departmentsInfo.acc.manifesto}</p>
+              </div>
+              <div className="mt-8 pt-4 border-t border-outline-variant/30 flex items-center justify-between">
+                <span className="text-xs text-secondary font-bold">{departmentsInfo.acc.stats}</span>
                 <span className="material-symbols-outlined text-primary group-hover:translate-x-2 transition-transform duration-300">arrow_right_alt</span>
               </div>
             </div>

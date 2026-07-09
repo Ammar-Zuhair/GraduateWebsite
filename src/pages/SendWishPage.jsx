@@ -36,7 +36,8 @@ export default function SendWishPage({ setActivePage }) {
     if (result.success) {
       setShowSuccess(true);
     } else {
-      alert("Error sending wish. Please try again.");
+      const errorMsg = result.error?.message || result.error || JSON.stringify(result.error);
+      alert(locale === 'ar' ? `خطأ أثناء إرسال التهنئة: ${errorMsg}` : `Error sending wish: ${errorMsg}`);
     }
   };
 
@@ -70,20 +71,27 @@ export default function SendWishPage({ setActivePage }) {
             <h2 className="text-headline-sm font-bold text-primary mb-6 text-center">
               {locale === 'ar' ? '1. اختر التخصص' : '1. Choose Major'}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <button 
                 onClick={() => { setMajor('arch'); setStep(2); }}
-                className="flex flex-col items-center p-8 bg-surface border border-outline-variant/30 hover:border-[#c59e62] hover:bg-[#c59e62]/5 transition-all group"
+                className="flex flex-col items-center p-8 bg-surface border border-outline-variant/30 hover:border-[#c59e62] hover:bg-[#c59e62]/5 transition-all group cursor-pointer"
               >
                 <span className="material-symbols-outlined text-6xl text-primary group-hover:text-[#c59e62] mb-4 transition-colors">architecture</span>
                 <span className="text-lg font-bold text-primary">{locale === 'ar' ? 'هندسة معمارية' : 'Architecture'}</span>
               </button>
               <button 
                 onClick={() => { setMajor('it'); setStep(2); }}
-                className="flex flex-col items-center p-8 bg-surface border border-outline-variant/30 hover:border-[#c59e62] hover:bg-[#c59e62]/5 transition-all group"
+                className="flex flex-col items-center p-8 bg-surface border border-outline-variant/30 hover:border-[#c59e62] hover:bg-[#c59e62]/5 transition-all group cursor-pointer"
               >
                 <span className="material-symbols-outlined text-6xl text-primary group-hover:text-[#c59e62] mb-4 transition-colors">computer</span>
                 <span className="text-lg font-bold text-primary">{locale === 'ar' ? 'تقنية معلومات' : 'Information Technology'}</span>
+              </button>
+              <button 
+                onClick={() => { setMajor('acc'); setStep(2); }}
+                className="flex flex-col items-center p-8 bg-surface border border-outline-variant/30 hover:border-[#c59e62] hover:bg-[#c59e62]/5 transition-all group cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-6xl text-primary group-hover:text-[#c59e62] mb-4 transition-colors">payments</span>
+                <span className="text-lg font-bold text-primary">{locale === 'ar' ? 'محاسبة' : 'Accounting'}</span>
               </button>
             </div>
           </div>

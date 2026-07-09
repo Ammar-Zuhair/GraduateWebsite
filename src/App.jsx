@@ -69,35 +69,93 @@ function AppContent() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
   const { students } = useData();
-  const [activePage, setActivePage] = useState('home');
+  const [activePage, _setActivePage] = useState('home');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [inviteToken, setInviteToken] = useState(null);
 
-  // Invitation link hook detection
+  // Wrapper to sync page state changes with the browser URL and history stack
+  const setActivePage = (pageId, pushState = true, studentId = null) => {
+    if (studentId) {
+      setSelectedStudentId(studentId);
+    }
+    _setActivePage(pageId);
+    const targetStudentId = studentId || selectedStudentId;
+    if (pushState) {
+      try {
+        if (pageId === 'profile' && targetStudentId) {
+          window.history.pushState({ page: pageId, studentId: targetStudentId }, '', `?page=${pageId}&id=${targetStudentId}`);
+        } else {
+          window.history.pushState({ page: pageId }, '', `?page=${pageId}`);
+        }
+      } catch (err) {
+        console.warn("History pushState blocked by browser sandbox:", err);
+      }
+    }
+  };
+
+  // Sync state back when browser back/forward navigation is triggered
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (event.state && event.state.page) {
+        if (event.state.page === 'profile' && event.state.studentId) {
+          setSelectedStudentId(event.state.studentId);
+        }
+        _setActivePage(event.state.page);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const page = params.get('page') || 'home';
+        const id = params.get('id');
+        if (page === 'profile' && id) {
+          setSelectedStudentId(id);
+        }
+        _setActivePage(page);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedStudentId]);
+
+  // Initial routing hook on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const page = params.get('page');
+    const id = params.get('id');
     let shouldClear = false;
 
     if (token === 'grad2026-secure-invite' || token === 'admin2026-secure-invite') {
       setInviteToken(token);
-      setActivePage('register-student');
+      _setActivePage('register-student');
       shouldClear = true;
-    }
-    if (params.get('login') === 'true') {
-      setActivePage('login');
+    } else if (params.get('login') === 'true') {
+      _setActivePage('login');
       shouldClear = true;
+    } else if (page) {
+      if (page === 'profile' && id) {
+        setSelectedStudentId(id);
+      }
+      _setActivePage(page);
+    } else {
+      try {
+        window.history.replaceState({ page: 'home' }, '', '?page=home');
+      } catch (err) {
+        console.warn("History replaceState blocked:", err);
+      }
     }
 
     if (shouldClear) {
-      // Remove query parameters from URL bar without reloading
-      window.history.replaceState({}, document.title, window.location.pathname);
+      try {
+        window.history.replaceState({ page: 'register-student' }, document.title, window.location.pathname + `?page=register-student`);
+      } catch (err) {
+        console.warn("History replaceState blocked:", err);
+      }
     }
   }, []);
 
   const viewStudentProfile = (studentId) => {
     setSelectedStudentId(studentId);
-    setActivePage('profile');
+    setActivePage('profile', true, studentId);
   };
 
   const renderPage = () => {

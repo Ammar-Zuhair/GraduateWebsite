@@ -28,9 +28,7 @@ export default function Footer({ setActivePage }) {
 
         {/* Navigation Quick Links */}
         <div className="flex flex-col items-center md:items-end gap-3">
-          <span className="font-label-md text-[#c59e62] uppercase tracking-widest font-bold text-xs select-none">
-            {locale === 'ar' ? 'روابط سريعة' : 'Quick Links'}
-          </span>
+          
           <div className="flex flex-wrap justify-center gap-6 text-sm">
             <a 
               className="text-on-primary/80 hover:text-[#ffdeae] transition-colors" 
@@ -67,11 +65,7 @@ export default function Footer({ setActivePage }) {
       {/* Copyright */}
       <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-on-primary/50">
         <p>{t('copyright')}</p>
-        <div className="flex gap-4">
-          <a href="#" className="hover:text-white transition-colors">WhatsApp</a>
-          <a href="#" className="hover:text-white transition-colors">Telegram</a>
-          <a href="#" className="hover:text-white transition-colors">Twitter</a>
-        </div>
+        
       </div>
       </div>
     </footer>

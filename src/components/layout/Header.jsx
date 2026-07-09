@@ -14,7 +14,7 @@ export default function Header({ activePage, setActivePage }) {
     //{ id: 'timeline', label: locale === 'ar' ? 'شريط الزمن' : 'Timeline' },
     //{ id: 'news', label: locale === 'ar' ? 'الأخبار' : 'News' },
     { id: 'map', label: locale === 'ar' ? 'موقع الحفل' : 'Venue Map' },
-    { id: 'dean', label: locale === 'ar' ? 'كلمة العميد' : 'Dean Speech' },
+    { id: 'dean', label: locale === 'ar' ? 'كلمة الدكاتره' : 'Faculty Speeches' },
     { id: 'students', label: t('students') },
     { id: 'memories', label: t('memories') },
     ...(user?.role !== 'student' ? [{ id: 'send-wish', label: locale === 'ar' ? 'إرسال تهنئة' : 'Send Wish' }] : []),
@@ -44,7 +44,7 @@ export default function Header({ activePage, setActivePage }) {
       <div className="flex justify-between items-center w-full max-w-container-max mx-auto px-4 md:px-8 h-20">
         
         {/* Logo */}
-        <div className="flex items-center h-full">
+        <div className="hidden xl:flex items-center h-full">
           <button
             onClick={() => handleNavClick('home')}
             className="font-headline-md text-headline-md text-[#c59e62] tracking-tighter hover:text-white transition-all text-right font-bold py-2 flex items-center leading-none select-none"
@@ -53,8 +53,30 @@ export default function Header({ activePage, setActivePage }) {
           </button>
         </div>
 
+        {/* Mobile Horizontal Navigation Tabs */}
+        <nav className="xl:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-none py-2 px-1 max-w-[calc(100vw-110px)] md:max-w-[calc(100vw-150px)] flex-grow">
+          {navItems.map((item) => {
+            const isStudentTabActive = item.id === 'students' && (activePage === 'students' || activePage === 'profile');
+            const isActive = activePage === item.id || isStudentTabActive;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`font-body-md text-[11px] font-bold whitespace-nowrap px-2.5 py-1.5 rounded transition-all select-none border-0 ${
+                  isActive
+                    ? 'bg-[#c59e62] text-primary shadow'
+                    : 'text-on-primary/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
         {/* Desktop Nav - Ample Spacing */}
-        <nav className="hidden xl:flex items-center space-x-6 space-x-reverse rtl:space-x-reverse h-full">
+        <nav className="hidden xl:flex items-center space-x-6 space-x-reverse ltr:space-x-6 rtl:space-x-reverse h-full">
           {navItems.map((item) => {
             const isStudentTabActive = item.id === 'students' && (activePage === 'students' || activePage === 'profile');
             const isActive = activePage === item.id || isStudentTabActive;
@@ -108,7 +130,7 @@ export default function Header({ activePage, setActivePage }) {
               </div>
               <button 
                 onClick={handleLogout}
-                className="text-on-primary/60 hover:text-error hover:bg-white/5 p-2 transition-colors flex items-center justify-center"
+                className="text-on-primary/60 hover:text-error hover:bg-white/5 p-2 transition-colors flex items-center justify-center border-0 cursor-pointer bg-transparent"
                 title={locale === 'ar' ? 'تسجيل الخروج' : 'Logout'}
               >
                 <span className="material-symbols-outlined text-lg">logout</span>
@@ -117,31 +139,36 @@ export default function Header({ activePage, setActivePage }) {
           ) : (
             <button 
               onClick={() => handleNavClick('login')}
-              className="bg-[#c59e62] text-primary font-bold text-xs px-5 py-2.5 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap"
+              className="bg-[#c59e62] text-primary font-bold text-xs px-5 py-2.5 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap cursor-pointer"
             >
               {locale === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
             </button>
           )}
         </div>
 
-        {/* Mobile Buttons */}
-        <div className="xl:hidden flex items-center gap-3">
-          {!user && (
+        {/* Mobile Actions */}
+        <div className="xl:hidden flex items-center gap-2 shrink-0">
+          {user ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[#c59e62] font-bold max-w-[50px] truncate select-none">
+                {user.name}
+              </span>
+              <button 
+                onClick={handleLogout}
+                className="text-on-primary/70 hover:text-error p-1.5 transition-colors flex items-center justify-center bg-transparent border-0 cursor-pointer"
+                title={locale === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+              >
+                <span className="material-symbols-outlined text-[16px]">logout</span>
+              </button>
+            </div>
+          ) : (
             <button 
               onClick={() => handleNavClick('login')}
-              className="bg-[#c59e62] text-primary font-bold text-xs px-4 py-2 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap"
+              className="bg-[#c59e62] text-primary font-bold text-[10px] px-2.5 py-1.5 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap cursor-pointer"
             >
-              {locale === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+              {locale === 'ar' ? 'دخول' : 'Sign In'}
             </button>
           )}
-          
-          <button 
-            onClick={() => setIsOpen(!isOpen)} 
-            className="text-on-primary hover:text-[#c59e62] p-2 flex items-center justify-center"
-            aria-label="Toggle navigation drawer"
-          >
-            <span className="material-symbols-outlined text-3xl font-bold">{isOpen ? 'close' : 'menu'}</span>
-          </button>
         </div>
       </div>
 

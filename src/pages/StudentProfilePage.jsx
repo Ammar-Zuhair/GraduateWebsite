@@ -97,6 +97,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
   const getMajorName = (major) => {
     if (major === 'it') return locale === 'ar' ? 'تقنية معلومات' : 'Information Technology';
     if (major === 'arch') return locale === 'ar' ? 'هندسة معمارية' : 'Architecture';
+    if (major === 'acc') return locale === 'ar' ? 'محاسبة' : 'Accounting';
     return major;
   };
 

@@ -6,7 +6,7 @@ CREATE TABLE public.students (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     name_ar TEXT NOT NULL,
     name_en TEXT NOT NULL,
-    major TEXT NOT NULL CHECK (major IN ('it', 'arch')),
+    major TEXT NOT NULL CHECK (major IN ('it', 'arch', 'acc')),
     bio_ar TEXT,
     profile_image TEXT,
     cover_image TEXT,
@@ -22,7 +22,7 @@ CREATE TABLE public.wishes (
     relation TEXT,
     message TEXT NOT NULL,
     is_anonymous BOOLEAN DEFAULT false,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    status TEXT DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -83,11 +83,24 @@ CREATE POLICY "Users can update own profile."
 ON public.students FOR UPDATE USING (auth.uid() = user_id);
 
 -- Wishes Policies
-CREATE POLICY "Wishes are viewable by everyone." 
-ON public.wishes FOR SELECT USING (true);
+CREATE POLICY "Wishes are viewable only by the recipient student." 
+ON public.wishes FOR SELECT 
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM public.students WHERE id = student_id
+  )
+);
 
 CREATE POLICY "Anyone can insert a wish." 
 ON public.wishes FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Students can delete their own received wishes."
+ON public.wishes FOR DELETE
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM public.students WHERE id = student_id
+  )
+);
 
 -- Memories Policies
 CREATE POLICY "Memories are viewable by everyone." 
@@ -138,4 +151,41 @@ ON public.visitors FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Anyone can select visitors count" 
 ON public.visitors FOR SELECT USING (true);
+
+-- 9. Create Doctors Table (Faculty Speeches)
+CREATE TABLE IF NOT EXISTS public.doctors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name_ar TEXT NOT NULL,
+    name_en TEXT,
+    speech_ar TEXT NOT NULL,
+    speech_en TEXT,
+    image_url TEXT,
+    title_ar TEXT,
+    title_en TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Doctors are viewable by everyone." 
+ON public.doctors FOR SELECT USING (true);
+
+CREATE POLICY "Admins can insert doctors."
+ON public.doctors FOR INSERT WITH CHECK (
+  (auth.jwt() ->> 'email') = 'admin@university.edu'
+  OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+);
+
+CREATE POLICY "Admins can update doctors."
+ON public.doctors FOR UPDATE USING (
+  (auth.jwt() ->> 'email') = 'admin@university.edu'
+  OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+);
+
+CREATE POLICY "Admins can delete doctors."
+ON public.doctors FOR DELETE USING (
+  (auth.jwt() ->> 'email') = 'admin@university.edu'
+  OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+);
+
 

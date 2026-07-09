@@ -1,15 +1,136 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
+import { supabase } from '../lib/supabase';
 
 export default function AdminPage() {
   const { locale } = useLanguage();
   const { 
-    students, memories, wishes, sponsors,
+    students, memories, wishes, sponsors, doctors,
     deleteStudent, deleteWish, addMemory, deleteMemory, updateMemory,
-    updateStudentStatus, updateWishStatus, updateStudent,
-    addSponsorItem, deleteSponsorItem, updateSponsorItem
+    updateStudentStatus, updateStudent,
+    addSponsorItem, deleteSponsorItem, updateSponsorItem,
+    addDoctor, updateDoctorImage, deleteDoctor
   } = useData();
+
+  // Doctor form states
+  const [docNameAr, setDocNameAr] = useState('');
+  const [docTitleAr, setDocTitleAr] = useState('');
+  const [docSpeechAr, setDocSpeechAr] = useState('');
+  const [docImageInputType, setDocImageInputType] = useState('url'); // url or file
+  const [docImageUrl, setDocImageUrl] = useState('');
+  const [docImageFile, setDocImageFile] = useState(null);
+  const [docSuccess, setDocSuccess] = useState(false);
+  const [isSubmittingDoctor, setIsSubmittingDoctor] = useState(false);
+
+  // Edit Doctor Image modal states
+  const [editingDoctor, setEditingDoctor] = useState(null);
+  const [editDocImageInputType, setEditDocImageInputType] = useState('url'); // url or file
+  const [editDocImageUrl, setEditDocImageUrl] = useState('');
+  const [editDocImageFile, setEditDocImageFile] = useState(null);
+  const [isSavingDoctorImage, setIsSavingDoctorImage] = useState(false);
+  const [doctorImageEditSuccess, setDoctorImageEditSuccess] = useState(false);
+  const [doctorImageEditError, setDoctorImageEditError] = useState('');
+
+  const uploadImage = async (file) => {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}-${Date.now()}.${fileExt}`;
+    const filePath = `doctors/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('gallery')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('gallery')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const handleAddDoctor = async (e) => {
+    e.preventDefault();
+    if (!docNameAr.trim() || !docSpeechAr.trim() || !docTitleAr.trim()) return;
+
+    setIsSubmittingDoctor(true);
+    try {
+      let finalImageUrl = docImageUrl;
+      if (docImageInputType === 'file' && docImageFile) {
+        finalImageUrl = await uploadImage(docImageFile);
+      }
+
+      const result = await addDoctor({
+        name_ar: docNameAr,
+        name_en: docNameAr,
+        title_ar: docTitleAr,
+        title_en: docTitleAr,
+        speech_ar: docSpeechAr,
+        speech_en: docSpeechAr,
+        image_url: finalImageUrl
+      });
+
+      if (result.success) {
+        setDocNameAr('');
+        setDocTitleAr('');
+        setDocSpeechAr('');
+        setDocImageUrl('');
+        setDocImageFile(null);
+        setDocSuccess(true);
+        setTimeout(() => setDocSuccess(false), 3000);
+      } else {
+        alert(locale === 'ar' ? 'حدث خطأ: ' + result.error : 'Error: ' + result.error);
+      }
+    } catch (err) {
+      alert(locale === 'ar' ? 'خطأ في الرفع: ' + err.message : 'Upload error: ' + err.message);
+    } finally {
+      setIsSubmittingDoctor(false);
+    }
+  };
+
+  const startEditingDoctor = (doc) => {
+    setEditingDoctor(doc);
+    setEditDocImageUrl(doc.image_url || '');
+    setEditDocImageInputType('url');
+    setEditDocImageFile(null);
+    setDoctorImageEditSuccess(false);
+    setDoctorImageEditError('');
+  };
+
+  const handleSaveDoctorImage = async (e) => {
+    e.preventDefault();
+    if (!editingDoctor) return;
+
+    setIsSavingDoctorImage(true);
+    setDoctorImageEditError('');
+    setDoctorImageEditSuccess(false);
+
+    try {
+      let finalImageUrl = editDocImageUrl;
+      if (editDocImageInputType === 'file' && editDocImageFile) {
+        finalImageUrl = await uploadImage(editDocImageFile);
+      }
+
+      const result = await updateDoctorImage(editingDoctor.id, finalImageUrl);
+      if (result.success) {
+        setDoctorImageEditSuccess(true);
+        setTimeout(() => {
+          setDoctorImageEditSuccess(false);
+          setEditingDoctor(null);
+        }, 1500);
+      } else {
+        setDoctorImageEditError(result.error || (locale === 'ar' ? 'فشل حفظ الصورة.' : 'Failed to save image.'));
+      }
+    } catch (err) {
+      setDoctorImageEditError(err.message);
+    } finally {
+      setIsSavingDoctorImage(false);
+    }
+  };
 
   // Student Edit States
   const [editingStudent, setEditingStudent] = useState(null);
@@ -64,9 +185,8 @@ export default function AdminPage() {
   // Tabs: students, wishes, memories
   const [activeTab, setActiveTab] = useState('students');
 
-  // Sub-tabs for filtering students and wishes: pending, approved, rejected
+  // Sub-tabs for filtering students: pending, approved, rejected
   const [studentFilter, setStudentFilter] = useState('pending');
-  const [wishFilter, setWishFilter] = useState('pending');
 
   // Add memory form states
   const [memTitleAr, setMemTitleAr] = useState('');
@@ -160,6 +280,7 @@ export default function AdminPage() {
   const getMajorName = (major) => {
     if (major === 'it') return locale === 'ar' ? 'تقنية معلومات' : 'Information Technology';
     if (major === 'arch') return locale === 'ar' ? 'هندسة معمارية' : 'Architecture';
+    if (major === 'acc') return locale === 'ar' ? 'محاسبة' : 'Accounting';
     return major;
   };
 
@@ -255,22 +376,7 @@ export default function AdminPage() {
     });
   };
 
-  // Filter wishes based on status and is_approved fallback
-  const getFilteredWishes = () => {
-    return wishes.filter(w => {
-      const isPending = w.status === 'pending' || (w.status === undefined && w.is_approved === false);
-      const isApproved = w.status === 'approved' || (w.status === undefined && w.is_approved !== false);
-      const isRejected = w.status === 'rejected';
-
-      if (wishFilter === 'pending') return isPending;
-      if (wishFilter === 'approved') return isApproved;
-      if (wishFilter === 'rejected') return isRejected;
-      return true;
-    });
-  };
-
   const filteredStudentsList = getFilteredStudents();
-  const filteredWishesList = getFilteredWishes();
 
   return (
     <div className="w-full max-w-container-max mx-auto px-4 md:px-8 py-12 md:py-24">
@@ -279,7 +385,7 @@ export default function AdminPage() {
           {locale === 'ar' ? 'لوحة التحكم وإدارة البوابة الرسمية' : 'Admin Control Panel Dashboard'}
         </h1>
         <p className="text-secondary text-sm mt-2 font-bold">
-          {locale === 'ar' ? 'إدارة محتوى الموقع، مراجعة التهاني واعتماد الطلاب والصور.' : 'Manage site content, moderate wishes, edit graduates, and accept galleries.'}
+          {locale === 'ar' ? 'إدارة محتوى الموقع، واعتماد الطلاب والصور.' : 'Manage site content, edit graduates, and accept galleries.'}
         </p>
       </header>
 
@@ -294,16 +400,6 @@ export default function AdminPage() {
           }`}
         >
           {locale === 'ar' ? 'إدارة الطلاب' : 'Graduates List'}
-        </button>
-        <button
-          onClick={() => setActiveTab('wishes')}
-          className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
-            activeTab === 'wishes' 
-              ? 'border-b-2 border-[#c59e62] text-primary' 
-              : 'text-secondary hover:text-primary bg-transparent'
-          }`}
-        >
-          {locale === 'ar' ? 'إدارة التهاني' : 'Moderate Wishes'}
         </button>
         <button
           onClick={() => setActiveTab('memories')}
@@ -324,6 +420,16 @@ export default function AdminPage() {
           }`}
         >
           {locale === 'ar' ? 'الداعمون' : 'Sponsors'}
+        </button>
+        <button
+          onClick={() => setActiveTab('doctors')}
+          className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
+            activeTab === 'doctors' 
+              ? 'border-b-2 border-[#c59e62] text-primary' 
+              : 'text-secondary hover:text-primary bg-transparent'
+          }`}
+        >
+          {locale === 'ar' ? 'إدارة الدكاترة' : 'Manage Doctors'}
         </button>
       </section>
 
@@ -428,100 +534,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* PANEL 2: Wishes */}
-      {activeTab === 'wishes' && (
-        <div className="bg-[#F5E6D3] dark:bg-surface-container p-6 md:p-8 border border-outline-variant/20 shadow-sm w-full">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h3 className="text-lg text-primary font-bold">
-              {locale === 'ar' ? 'لوحة مراقبة وإدارة التهاني والرسائل' : 'Congratulatory Messages Moderation'}
-            </h3>
-            
-            {/* Wishes sub-tabs switcher */}
-            <div className="flex gap-2 bg-black/5 p-1 select-none">
-              {['pending', 'approved', 'rejected'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setWishFilter(tab)}
-                  className={`px-4 py-1.5 text-xs font-bold transition-all border-0 cursor-pointer ${
-                    wishFilter === tab 
-                      ? 'bg-[#c59e62] text-primary shadow' 
-                      : 'text-secondary hover:text-primary bg-transparent'
-                  }`}
-                >
-                  {tab === 'pending' && (locale === 'ar' ? 'معلّقة' : 'Pending')}
-                  {tab === 'approved' && (locale === 'ar' ? 'مقبولة' : 'Approved')}
-                  {tab === 'rejected' && (locale === 'ar' ? 'مرفوضة' : 'Rejected')}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-right rtl:text-right ltr:text-left text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-primary/20 font-bold text-secondary uppercase tracking-widest text-xs">
-                  <th className="py-3 px-4">{locale === 'ar' ? 'المرسل' : 'Sender'}</th>
-                  <th className="py-3 px-4">{locale === 'ar' ? 'الرسالة' : 'Message'}</th>
-                  <th className="py-3 px-4">{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
-                  <th className="py-3 px-4">{locale === 'ar' ? 'التحكم والمراجعة' : 'Moderate'}</th>
-                  <th className="py-3 px-4">{locale === 'ar' ? 'حذف نهائي' : 'Actions'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWishesList.map(w => (
-                  <tr key={w.id} className="border-b border-primary/10 hover:bg-primary/5 font-semibold text-primary">
-                    <td className="py-3 px-4 font-bold">
-                      {w.is_anonymous ? (locale === 'ar' ? 'مجهول' : 'Anonymous') : w.author_name}
-                    </td>
-                    <td className="py-3 px-4 max-w-xs truncate italic">"{w.message}"</td>
-                    <td className="py-3 px-4">{new Date(w.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}</td>
-                    <td className="py-3 px-4 flex gap-2">
-                      {w.status !== 'approved' && (
-                        <button
-                          onClick={() => updateWishStatus(w.id, 'approved')}
-                          className="bg-primary text-[#c59e62] hover:bg-primary/95 text-[10px] font-bold px-3 py-1.5 border-0 cursor-pointer"
-                        >
-                          {locale === 'ar' ? 'قبول' : 'Approve'}
-                        </button>
-                      )}
-                      {w.status !== 'rejected' && (
-                        <button
-                          onClick={() => updateWishStatus(w.id, 'rejected')}
-                          className="bg-red-950 text-error border border-error/20 hover:bg-red-900 text-[10px] font-bold px-3 py-1.5 cursor-pointer"
-                        >
-                          {locale === 'ar' ? 'رفض' : 'Reject'}
-                        </button>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={async () => {
-                          if (window.confirm(locale === 'ar' ? 'حذف هذه التهنئة نهائياً؟' : 'Delete this wish permanently?')) {
-                            const res = await deleteWish(w.id);
-                            if (res && !res.success) {
-                              alert((locale === 'ar' ? 'فشل حذف التهنئة من قاعدة البيانات: ' : 'Failed to delete wish: ') + res.error);
-                            }
-                          }
-                        }}
-                        className="text-error hover:bg-error/10 px-3 py-1.5 font-bold transition-colors border-0 cursor-pointer text-xs"
-                      >
-                        {locale === 'ar' ? 'حذف' : 'Delete'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredWishesList.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="py-10 text-center text-secondary font-bold">
-                      {locale === 'ar' ? 'لا توجد رسائل تهنئة في هذا القسم.' : 'No congratulatory messages found in this section.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* PANEL 3: Memories */}
       {activeTab === 'memories' && (
@@ -954,6 +967,258 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* PANEL 5: Doctors */}
+      {activeTab === 'doctors' && (
+        <div className="bg-[#F5E6D3] dark:bg-surface-container p-6 md:p-8 border border-outline-variant/20 shadow-sm w-full">
+          <h3 className="text-lg text-primary font-bold border-b border-primary/10 pb-4 mb-6">
+            {locale === 'ar' ? 'إدارة كلمات أعضاء التدريس والدكاترة' : 'Manage Faculty Words & Speeches'}
+          </h3>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Add Doctor Form */}
+            <div className="lg:col-span-1 bg-background border border-outline-variant/20 p-6 shadow-sm">
+              <h4 className="text-sm font-bold text-primary border-b border-primary/10 pb-3 mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#c59e62] text-lg">add_circle</span>
+                {locale === 'ar' ? 'إضافة كلمة دكتور جديدة' : 'Add New Doctor Speech'}
+              </h4>
+
+              {docSuccess && (
+                <div className="mb-4 p-3 bg-[#efe0cd] border border-[#c59e62] text-primary font-bold text-xs text-center">
+                  {locale === 'ar' ? '✅ تمت الإضافة بنجاح!' : '✅ Added successfully!'}
+                </div>
+              )}
+
+              <form onSubmit={handleAddDoctor} className="flex flex-col gap-4 text-right rtl:text-right ltr:text-left">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-secondary font-bold">
+                    {locale === 'ar' ? 'اسم الدكتور / الأستاذ *' : 'Doctor Name *'}
+                  </label>
+                  <input
+                    type="text"
+                    value={docNameAr}
+                    onChange={(e) => setDocNameAr(e.target.value)}
+                    required
+                    placeholder={locale === 'ar' ? 'د. أحمد علي' : 'Dr. Ahmed Ali'}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-secondary font-bold">
+                    {locale === 'ar' ? 'المسمى الوظيفي / القسم *' : 'Title / Dept *'}
+                  </label>
+                  <input
+                    type="text"
+                    value={docTitleAr}
+                    onChange={(e) => setDocTitleAr(e.target.value)}
+                    required
+                    placeholder={locale === 'ar' ? 'رئيس قسم الهندسة المعمارية' : 'Head of Architecture Dept'}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-secondary font-bold">
+                    {locale === 'ar' ? 'نص الكلمة / التهنئة *' : 'Speech Text *'}
+                  </label>
+                  <textarea
+                    value={docSpeechAr}
+                    onChange={(e) => setDocSpeechAr(e.target.value)}
+                    required
+                    rows="4"
+                    placeholder={locale === 'ar' ? 'اكتب الرسالة الموجهة للطلاب...' : 'Write the message...'}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary resize-none w-full leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'صورة الدكتور' : 'Doctor Photo'}</label>
+                  <div className="flex gap-4 mb-1 text-[10px]">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={docImageInputType === 'url'} onChange={() => setDocImageInputType('url')} name="docImageInputType" className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'رابط (URL)' : 'Paste URL'}
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={docImageInputType === 'file'} onChange={() => setDocImageInputType('file')} name="docImageInputType" className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'تحميل ملف' : 'Upload File'}
+                    </label>
+                  </div>
+
+                  {docImageInputType === 'url' ? (
+                    <input 
+                      type="url" 
+                      value={docImageUrl}
+                      onChange={(e) => setDocImageUrl(e.target.value)}
+                      className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1 text-xs text-primary w-full"
+                      placeholder="https://example.com/logo.jpg"
+                    />
+                  ) : (
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => setDocImageFile(e.target.files[0])}
+                      className="text-[10px] text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
+                    />
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingDoctor}
+                  className="bg-primary text-white text-xs py-3 mt-2 hover:bg-primary/90 transition-all font-bold cursor-pointer border-0 disabled:opacity-50"
+                >
+                  {isSubmittingDoctor ? (locale === 'ar' ? 'جاري الإضافة...' : 'Adding...') : (locale === 'ar' ? 'إضافة ونشر الكلمة' : 'Add Speech')}
+                </button>
+              </form>
+            </div>
+
+            {/* List Doctors */}
+            <div className="lg:col-span-2 bg-background border border-outline-variant/20 p-6 shadow-sm overflow-x-auto w-full">
+              <h4 className="text-sm font-bold text-primary border-b border-primary/10 pb-3 mb-4">
+                {locale === 'ar' ? 'قائمة الدكاترة والكلمات المنشورة' : 'Published Doctor Speeches'}
+              </h4>
+              <table className="w-full text-right rtl:text-right ltr:text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-primary/20 font-bold text-secondary uppercase tracking-widest text-[10px]">
+                    <th className="py-2.5 px-3">{locale === 'ar' ? 'الصورة' : 'Avatar'}</th>
+                    <th className="py-2.5 px-3">{locale === 'ar' ? 'الاسم' : 'Name'}</th>
+                    <th className="py-2.5 px-3">{locale === 'ar' ? 'المنصب' : 'Title'}</th>
+                    <th className="py-2.5 px-3">{locale === 'ar' ? 'التحكم' : 'Actions'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doctors.map(d => (
+                    <tr key={d.id} className="border-b border-primary/10 hover:bg-primary/5 font-semibold text-primary">
+                      <td className="py-2.5 px-3">
+                        <img 
+                          src={d.image_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(d.name_ar)} 
+                          alt="" 
+                          className="w-8 h-8 rounded-full object-cover border border-outline-variant/30" 
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 font-bold">{d.name_ar}</td>
+                      <td className="py-2.5 px-3 text-secondary">{d.title_ar}</td>
+                      <td className="py-2.5 px-3 flex gap-2">
+                        <button
+                          onClick={() => startEditingDoctor(d)}
+                          className="bg-[#efe0cd] text-primary hover:bg-[#c59e62]/20 text-[9px] font-bold px-2 py-1 border-0 rounded cursor-pointer"
+                        >
+                          {locale === 'ar' ? 'تعديل الصورة' : 'Edit Image'}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(locale === 'ar' ? `هل أنت متأكد من حذف كلمة ${d.name_ar}؟` : `Delete speech by ${d.name_ar}?`)) {
+                              const res = await deleteDoctor(d.id);
+                              if (res && !res.success) {
+                                alert((locale === 'ar' ? 'فشل الحذف: ' : 'Delete failed: ') + res.error);
+                              }
+                            }
+                          }}
+                          className="text-error hover:bg-error/10 px-2 py-1 font-bold transition-colors border-0 cursor-pointer text-[9px]"
+                        >
+                          {locale === 'ar' ? 'حذف' : 'Delete'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {doctors.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="py-6 text-center text-secondary">
+                        {locale === 'ar' ? 'لا يوجد دكاترة مسجلين في قاعدة البيانات. (يتم استخدام البيانات الثابتة في العرض كبديل مؤقت).' : 'No doctors in database. Fallbacks are shown in public view.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Doctor Image Modal */}
+      {editingDoctor && (
+        <div className="fixed inset-0 bg-black/65 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setEditingDoctor(null)}
+              className="absolute top-4 right-4 text-primary hover:text-secondary bg-transparent border-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <h2 className="text-xl font-bold text-primary mb-6 border-b border-[#c59e62]/20 pb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#c59e62]">image</span>
+              {locale === 'ar' ? `تعديل صورة ${editingDoctor.name_ar}` : `Edit Photo for ${editingDoctor.name_ar}`}
+            </h2>
+            
+            {doctorImageEditSuccess && (
+              <div className="mb-4 p-3 bg-green-100 dark:bg-green-950/40 border border-green-500/20 text-green-700 dark:text-green-300 font-bold text-xs text-center">
+                {locale === 'ar' ? '✅ تم حفظ الصورة بنجاح!' : '✅ Image updated successfully!'}
+              </div>
+            )}
+
+            {doctorImageEditError && (
+              <div className="mb-4 p-3 bg-error-container border border-error/20 text-error font-bold text-xs text-center">
+                {doctorImageEditError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveDoctorImage} className="space-y-4 text-right rtl:text-right ltr:text-left">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'طريقة تحديث الصورة' : 'Image Update Method'}</label>
+                <div className="flex gap-4 mb-2 text-xs">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input type="radio" checked={editDocImageInputType === 'url'} onChange={() => setEditDocImageInputType('url')} name="editDocImageInputType" className="accent-[#c59e62]" />
+                    {locale === 'ar' ? 'رابط إلكتروني (URL)' : 'Paste URL'}
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input type="radio" checked={editDocImageInputType === 'file'} onChange={() => setEditDocImageInputType('file')} name="editDocImageInputType" className="accent-[#c59e62]" />
+                    {locale === 'ar' ? 'تحميل ملف جديد' : 'Upload File'}
+                  </label>
+                </div>
+
+                {editDocImageInputType === 'url' ? (
+                  <input 
+                    type="url" 
+                    value={editDocImageUrl}
+                    onChange={(e) => setEditDocImageUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                    placeholder="https://example.com/image.jpg"
+                    required
+                  />
+                ) : (
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setEditDocImageFile(e.target.files[0])}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                    required={!editDocImageFile}
+                  />
+                )}
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setEditingDoctor(null)}
+                  className="px-4 py-2 border border-outline-variant/30 text-secondary text-xs font-bold hover:bg-black/5 bg-transparent cursor-pointer"
+                >
+                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSavingDoctorImage}
+                  className="px-6 py-2 bg-[#c59e62] text-primary hover:bg-[#ffdeae] text-xs font-bold flex items-center gap-1.5 border-0 cursor-pointer"
+                >
+                  {isSavingDoctorImage && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
+                  {locale === 'ar' ? 'حفظ الصورة' : 'Save Image'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Edit Student Modal */}
       {editingStudent && (
         <div className="fixed inset-0 bg-black/65 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
@@ -1003,6 +1268,7 @@ export default function AdminPage() {
                 >
                   <option value="it">{locale === 'ar' ? 'تقنية معلومات' : 'Information Technology'}</option>
                   <option value="arch">{locale === 'ar' ? 'هندسة معمارية' : 'Architecture'}</option>
+                  <option value="acc">{locale === 'ar' ? 'محاسبة' : 'Accounting'}</option>
                 </select>
               </div>
 

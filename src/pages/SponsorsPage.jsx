@@ -224,8 +224,8 @@ export default function SponsorsPage() {
           </h2>
           <p className="text-[#FAF8F5]/70 text-sm max-w-md mx-auto mb-8 leading-relaxed">
             {locale === 'ar'
-              ? 'انضم إلى قافلة الداعمين وأسهم في صنع ذكريات لا تُنسى لدفعة تقنية ومعمار 2026 واحصل على الوصول لشبكة متميزة من المهندسين والمبدعين.'
-              : 'Join our sponsors and help create unforgettable memories for Class of 2026 while gaining access to an exclusive network of engineers and designers.'}
+              ? 'انضم إلى قافلة الداعمين وأسهم في صنع ذكريات لا تُنسى لدفعة تقنية ومعمار ومحاسبة 2026 واحصل على الوصول لشبكة متميزة من المهندسين والمبدعين.'
+              : 'Join our sponsors and help create unforgettable memories for the Tech, Arch & Accounting Class of 2026.'}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             {Object.entries(TIERS).map(([key, tier]) => (

@@ -9,6 +9,7 @@ export const DataProvider = ({ children }) => {
   const [news, setNews] = useState([]);
   const [sponsors, setSponsors] = useState([]);
   const [wishes, setWishes] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [visitorCount, setVisitorCount] = useState(1520); // Default placeholder base
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +35,19 @@ export const DataProvider = ({ children }) => {
       if (memoriesData) setMemories(memoriesData);
       if (newsData) setNews(newsData);
       if (sponsorsData) setSponsors(sponsorsData);
+
+      // Fetch doctors separately so it won't crash if table isn't created yet
+      try {
+        const { data: doctorsData, error: doctorsError } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('created_at', { ascending: true });
+        if (!doctorsError && doctorsData) {
+          setDoctors(doctorsData);
+        }
+      } catch (e) {
+        console.warn("Could not load doctors from Supabase", e);
+      }
     } catch (error) {
       console.error("Error fetching data from Supabase:", error);
     } finally {
@@ -91,19 +105,17 @@ export const DataProvider = ({ children }) => {
   // --- ACTIONS ---
 
   const addWish = async (wishData) => {
-    const { data, error } = await supabase.from('wishes').insert([
+    const { error } = await supabase.from('wishes').insert([
       {
         student_id: wishData.studentId,
         author_name: wishData.author,
         relation: wishData.relation,
         message: wishData.message,
-        is_anonymous: wishData.anonymous
+        is_anonymous: wishData.anonymous,
+        status: 'approved'
       }
-    ]).select();
+    ]);
     
-    if (!error && data) {
-      setWishes(prev => [data[0], ...prev]);
-    }
     return { success: !error, error };
   };
 
@@ -308,12 +320,56 @@ export const DataProvider = ({ children }) => {
 
 
 
+  const addDoctor = async (doctorData) => {
+    const { data, error } = await supabase.from('doctors').insert([
+      {
+        name_ar: doctorData.name_ar,
+        name_en: doctorData.name_en || doctorData.name_ar,
+        speech_ar: doctorData.speech_ar,
+        speech_en: doctorData.speech_en || doctorData.speech_ar,
+        image_url: doctorData.image_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(doctorData.name_ar),
+        title_ar: doctorData.title_ar,
+        title_en: doctorData.title_en || doctorData.title_ar
+      }
+    ]).select();
+
+    if (!error && data && data.length > 0) {
+      setDoctors(prev => [...prev, data[0]]);
+      return { success: true, data: data[0] };
+    }
+    return { success: false, error: error?.message || 'Failed to add doctor' };
+  };
+
+  const updateDoctorImage = async (id, imageUrl) => {
+    const { data, error } = await supabase
+      .from('doctors')
+      .update({ image_url: imageUrl })
+      .eq('id', id)
+      .select();
+
+    if (!error && data && data.length > 0) {
+      setDoctors(prev => prev.map(d => d.id === id ? data[0] : d));
+      return { success: true, data: data[0] };
+    }
+    return { success: false, error: error?.message || 'Failed to update doctor image' };
+  };
+
+  const deleteDoctor = async (id) => {
+    const { data, error } = await supabase.from('doctors').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
+      setDoctors(prev => prev.filter(d => d.id !== id));
+      return { success: true };
+    }
+    return { success: false, error: error?.message || 'Failed to delete doctor' };
+  };
+
   return (
     <DataContext.Provider value={{
-      students, memories, news, sponsors, wishes, stats, loading,
+      students, memories, news, sponsors, wishes, doctors, stats, loading,
       addWish, deleteWish, deleteStudent, addMemory, deleteMemory, updateMemoryLikes, updateMemory,
       updateStudentStatus, updateWishStatus, updateStudent,
-      addNewsItem, deleteNewsItem, addSponsorItem, deleteSponsorItem, updateSponsorItem
+      addNewsItem, deleteNewsItem, addSponsorItem, deleteSponsorItem, updateSponsorItem,
+      addDoctor, updateDoctorImage, deleteDoctor
     }}>
       {children}
     </DataContext.Provider>

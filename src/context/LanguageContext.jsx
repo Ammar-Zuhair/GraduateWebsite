@@ -79,7 +79,7 @@ const translations = {
     
    
     privacy_policy: 'سياسة الخصوصية',
-    copyright: '© 2026 لجنة تخرج تقنية ومعمار. جميع الحقوق محفوظة.',
+    copyright: '© 2026 لجنة تخرج تقنية ومعمار ومحاسبة. جميع الحقوق محفوظة.',
     
     // Toast alerts
     wish_added: 'تمت إضافة تهنئتك بنجاح!',
@@ -169,7 +169,7 @@ const translations = {
     dept_science: 'College of Science',
     dept_alumni: 'Alumni Association',
     privacy_policy: 'Privacy Policy',
-    copyright: '© 2026 Academic Heritage Graduation Committee. All Rights Reserved.',
+    copyright: '© 2026 Tech, Arch & Accounting Graduation Committee. All Rights Reserved.',
     
     // Toast alerts
     wish_added: 'Your wish has been successfully added!',
