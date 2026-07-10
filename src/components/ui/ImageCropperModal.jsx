@@ -177,7 +177,7 @@ export default function ImageCropperModal({ imageSrc, onCrop, onClose, locale = 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/85 z-[999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-black/85 z-[999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" style={{ touchAction: 'none' }}>
       <div className="bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 p-6 md:p-8 max-w-2xl w-full shadow-2xl flex flex-col gap-6 relative">
         <h3 className="text-lg font-bold text-primary border-b border-[#c59e62]/20 pb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-[#c59e62]">crop</span>
@@ -188,9 +188,9 @@ export default function ImageCropperModal({ imageSrc, onCrop, onClose, locale = 
         <div 
           ref={containerRef}
           className="relative bg-black/40 border border-[#c59e62]/20 overflow-hidden flex items-center justify-center select-none mx-auto w-full"
-          style={{ height: '350px' }}
+          style={{ height: '350px', touchAction: 'none' }}
         >
-          <div className="relative inline-block max-h-full max-w-full">
+          <div className="relative inline-block max-h-full max-w-full" style={{ touchAction: 'none' }}>
             <img 
               ref={imgRef}
               src={imageSrc} 
@@ -223,7 +223,7 @@ export default function ImageCropperModal({ imageSrc, onCrop, onClose, locale = 
                 {/* The Draggable Crop Box Overlay */}
                 <div 
                   className="absolute border-2 border-[#c59e62] cursor-move box-border shadow-[0_0_0_9999px_rgba(0,0,0,0)]"
-                  style={{ left: `${crop.x}px`, top: `${crop.y}px`, width: `${crop.w}px`, height: `${crop.h}px` }}
+                  style={{ left: `${crop.x}px`, top: `${crop.y}px`, width: `${crop.w}px`, height: `${crop.h}px`, touchAction: 'none' }}
                   onMouseDown={(e) => handleStart(e, 'move')}
                   onTouchStart={(e) => handleStart(e, 'move')}
                 >
