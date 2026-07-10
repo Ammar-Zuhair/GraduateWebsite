@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const createThumbnail = (file, maxDim = 500) => {
+const createThumbnail = (file, maxDim = 900) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -39,7 +39,7 @@ const createThumbnail = (file, maxDim = 500) => {
           } else {
             resolve(null);
           }
-        }, 'image/jpeg', 0.7); // 70% quality for high compression
+        }, 'image/jpeg', 0.85); // 85% quality is the sweet spot for Retina displays (zero visible noise)
       };
       img.onerror = () => resolve(null);
       img.src = e.target.result;
@@ -68,7 +68,7 @@ export const uploadImage = async (file, folder = 'general') => {
   // 2. Generate and upload thumbnail for memories
   if (folder === 'memories') {
     try {
-      const thumbFile = await createThumbnail(file, 500);
+      const thumbFile = await createThumbnail(file, 900);
       if (thumbFile) {
         const thumbPath = `${folder}/${rawFileName}_thumb.${fileExt}`;
         await supabase.storage
