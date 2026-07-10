@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, uploadImage } from '../lib/supabase';
 import { useData } from '../context/DataContext';
 
 export default function CreateStudentProfilePage({ setActivePage }) {
@@ -12,9 +12,20 @@ export default function CreateStudentProfilePage({ setActivePage }) {
   const [nameAr, setNameAr] = useState('');
   const [major, setMajor] = useState('it');
   const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState('');
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState('');
+  const [profileImageInputType, setProfileImageInputType] = useState('file'); // file or url
+  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImageFile(file);
+      setProfileImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,9 +37,14 @@ export default function CreateStudentProfilePage({ setActivePage }) {
     setIsSubmitting(true);
     setError('');
 
-    const avatarUrl = profileImage.trim() || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(nameAr);
-
     try {
+      let avatarUrl = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(nameAr);
+      if (profileImageInputType === 'file' && profileImageFile) {
+        avatarUrl = await uploadImage(profileImageFile, 'profiles');
+      } else if (profileImageInputType === 'url' && profileImageUrl.trim()) {
+        avatarUrl = profileImageUrl.trim();
+      }
+
       const { error: dbError } = await supabase.from('students').insert([
         {
           user_id: user.id,
@@ -109,15 +125,59 @@ export default function CreateStudentProfilePage({ setActivePage }) {
 
           <div className="flex flex-col gap-2">
             <label className="text-sm text-on-surface-variant font-bold">
-              {locale === 'ar' ? 'رابط الصورة الشخصية (اختياري)' : 'Profile Image URL (optional)'}
+              {locale === 'ar' ? 'طريقة إضافة الصورة الشخصية' : 'Profile Image Method'}
             </label>
-            <input
-              type="url"
-              value={profileImage}
-              onChange={(e) => setProfileImage(e.target.value)}
-              className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
-              placeholder="https://..."
-            />
+            <div className="flex gap-4 mb-2 text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" checked={profileImageInputType === 'file'} onChange={() => setProfileImageInputType('file')} name="profileImageInputType" className="accent-[#c59e62]" />
+                {locale === 'ar' ? 'تحميل ملف (من الهاتف)' : 'Upload File'}
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" checked={profileImageInputType === 'url'} onChange={() => setProfileImageInputType('url')} name="profileImageInputType" className="accent-[#c59e62]" />
+                {locale === 'ar' ? 'رابط إلكتروني (URL)' : 'Paste URL'}
+              </label>
+            </div>
+
+            {profileImageInputType === 'file' ? (
+              <div className="flex items-center gap-4 mt-1">
+                <div className="w-14 h-14 rounded-full border border-primary/20 overflow-hidden bg-black/5 shrink-0 flex items-center justify-center relative group">
+                  {profileImagePreview ? (
+                    <>
+                      <img src={profileImagePreview} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileImageFile(null);
+                          setProfileImagePreview('');
+                        }}
+                        className="absolute inset-0 bg-black/60 text-white text-[9px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'حذف' : 'Remove'}
+                      </button>
+                    </>
+                  ) : (
+                    <span className="material-symbols-outlined text-2xl text-secondary">person</span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                />
+              </div>
+            ) : (
+              <input
+                type="url"
+                value={profileImageUrl}
+                onChange={(e) => {
+                  setProfileImageUrl(e.target.value);
+                  setProfileImagePreview(e.target.value);
+                }}
+                className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
+                placeholder="https://..."
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

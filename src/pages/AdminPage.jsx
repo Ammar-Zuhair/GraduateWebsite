@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
-import { supabase } from '../lib/supabase';
+import { uploadImage } from '../lib/supabase';
 
 export default function AdminPage() {
   const { locale } = useLanguage();
@@ -10,7 +10,7 @@ export default function AdminPage() {
     deleteStudent, deleteWish, addMemory, deleteMemory, updateMemory,
     updateStudentStatus, updateStudent,
     addSponsorItem, deleteSponsorItem, updateSponsorItem,
-    addDoctor, updateDoctorImage, deleteDoctor
+    addDoctor, updateDoctor, deleteDoctor
   } = useData();
 
   // Doctor form states
@@ -23,35 +23,18 @@ export default function AdminPage() {
   const [docSuccess, setDocSuccess] = useState(false);
   const [isSubmittingDoctor, setIsSubmittingDoctor] = useState(false);
 
-  // Edit Doctor Image modal states
+  // Edit Doctor modal states
   const [editingDoctor, setEditingDoctor] = useState(null);
+  const [editDocNameAr, setEditDocNameAr] = useState('');
+  const [editDocTitleAr, setEditDocTitleAr] = useState('');
+  const [editDocSpeechAr, setEditDocSpeechAr] = useState('');
   const [editDocImageInputType, setEditDocImageInputType] = useState('url'); // url or file
   const [editDocImageUrl, setEditDocImageUrl] = useState('');
   const [editDocImageFile, setEditDocImageFile] = useState(null);
-  const [isSavingDoctorImage, setIsSavingDoctorImage] = useState(false);
-  const [doctorImageEditSuccess, setDoctorImageEditSuccess] = useState(false);
-  const [doctorImageEditError, setDoctorImageEditError] = useState('');
-
-  const uploadImage = async (file) => {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}-${Date.now()}.${fileExt}`;
-    const filePath = `doctors/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('gallery')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('gallery')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  };
+  const [editDocImagePreview, setEditDocImagePreview] = useState('');
+  const [isSavingDoctor, setIsSavingDoctor] = useState(false);
+  const [doctorEditSuccess, setDoctorEditSuccess] = useState(false);
+  const [doctorEditError, setDoctorEditError] = useState('');
 
   const handleAddDoctor = async (e) => {
     e.preventDefault();
@@ -61,7 +44,7 @@ export default function AdminPage() {
     try {
       let finalImageUrl = docImageUrl;
       if (docImageInputType === 'file' && docImageFile) {
-        finalImageUrl = await uploadImage(docImageFile);
+        finalImageUrl = await uploadImage(docImageFile, 'doctors');
       }
 
       const result = await addDoctor({
@@ -94,41 +77,50 @@ export default function AdminPage() {
 
   const startEditingDoctor = (doc) => {
     setEditingDoctor(doc);
+    setEditDocNameAr(doc.name_ar || '');
+    setEditDocTitleAr(doc.title_ar || '');
+    setEditDocSpeechAr(doc.speech_ar || '');
     setEditDocImageUrl(doc.image_url || '');
     setEditDocImageInputType('url');
     setEditDocImageFile(null);
-    setDoctorImageEditSuccess(false);
-    setDoctorImageEditError('');
+    setEditDocImagePreview(doc.image_url || '');
+    setDoctorEditSuccess(false);
+    setDoctorEditError('');
   };
 
-  const handleSaveDoctorImage = async (e) => {
+  const handleSaveDoctor = async (e) => {
     e.preventDefault();
     if (!editingDoctor) return;
 
-    setIsSavingDoctorImage(true);
-    setDoctorImageEditError('');
-    setDoctorImageEditSuccess(false);
+    setIsSavingDoctor(true);
+    setDoctorEditError('');
+    setDoctorEditSuccess(false);
 
     try {
       let finalImageUrl = editDocImageUrl;
       if (editDocImageInputType === 'file' && editDocImageFile) {
-        finalImageUrl = await uploadImage(editDocImageFile);
+        finalImageUrl = await uploadImage(editDocImageFile, 'doctors');
       }
 
-      const result = await updateDoctorImage(editingDoctor.id, finalImageUrl);
+      const result = await updateDoctor(editingDoctor.id, {
+        name_ar: editDocNameAr,
+        title_ar: editDocTitleAr,
+        speech_ar: editDocSpeechAr,
+        image_url: finalImageUrl
+      });
       if (result.success) {
-        setDoctorImageEditSuccess(true);
+        setDoctorEditSuccess(true);
         setTimeout(() => {
-          setDoctorImageEditSuccess(false);
+          setDoctorEditSuccess(false);
           setEditingDoctor(null);
         }, 1500);
       } else {
-        setDoctorImageEditError(result.error || (locale === 'ar' ? 'فشل حفظ الصورة.' : 'Failed to save image.'));
+        setDoctorEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
       }
     } catch (err) {
-      setDoctorImageEditError(err.message);
+      setDoctorEditError(err.message);
     } finally {
-      setIsSavingDoctorImage(false);
+      setIsSavingDoctor(false);
     }
   };
 
@@ -137,7 +129,11 @@ export default function AdminPage() {
   const [editName, setEditName] = useState('');
   const [editMajor, setEditMajor] = useState('it');
   const [editProfileImage, setEditProfileImage] = useState('');
+  const [editProfileImageFile, setEditProfileImageFile] = useState(null);
+  const [editProfileImagePreview, setEditProfileImagePreview] = useState('');
   const [editCoverImage, setEditCoverImage] = useState('');
+  const [editCoverImageFile, setEditCoverImageFile] = useState(null);
+  const [editCoverImagePreview, setEditCoverImagePreview] = useState('');
   const [editBio, setEditBio] = useState('');
   const [isSavingStudent, setIsSavingStudent] = useState(false);
   const [studentEditSuccess, setStudentEditSuccess] = useState(false);
@@ -149,6 +145,10 @@ export default function AdminPage() {
     setEditMajor(s.major || 'it');
     setEditProfileImage(s.profile_image || '');
     setEditCoverImage(s.cover_image || '');
+    setEditProfileImageFile(null);
+    setEditProfileImagePreview(s.profile_image || '');
+    setEditCoverImageFile(null);
+    setEditCoverImagePreview(s.cover_image || '');
     setEditBio(s.bio_ar || '');
     setStudentEditSuccess(false);
     setStudentEditError('');
@@ -162,23 +162,38 @@ export default function AdminPage() {
     setStudentEditError('');
     setStudentEditSuccess(false);
 
-    const result = await updateStudent(editingStudent.id, {
-      name_ar: editName,
-      major: editMajor,
-      profile_image: editProfileImage,
-      cover_image: editCoverImage,
-      bio_ar: editBio
-    });
-    setIsSavingStudent(false);
+    try {
+      let finalProfileUrl = editProfileImage;
+      if (editProfileImageFile) {
+        finalProfileUrl = await uploadImage(editProfileImageFile, 'profiles');
+      }
 
-    if (result.success) {
-      setStudentEditSuccess(true);
-      setTimeout(() => {
-        setStudentEditSuccess(false);
-        setEditingStudent(null);
-      }, 1500);
-    } else {
-      setStudentEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+      let finalCoverUrl = editCoverImage;
+      if (editCoverImageFile) {
+        finalCoverUrl = await uploadImage(editCoverImageFile, 'covers');
+      }
+
+      const result = await updateStudent(editingStudent.id, {
+        name_ar: editName,
+        major: editMajor,
+        profile_image: finalProfileUrl,
+        cover_image: finalCoverUrl,
+        bio_ar: editBio
+      });
+      setIsSavingStudent(false);
+
+      if (result.success) {
+        setStudentEditSuccess(true);
+        setTimeout(() => {
+          setStudentEditSuccess(false);
+          setEditingStudent(null);
+        }, 1500);
+      } else {
+        setStudentEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+      }
+    } catch (err) {
+      setStudentEditError(err.message);
+      setIsSavingStudent(false);
     }
   };
 
@@ -192,6 +207,9 @@ export default function AdminPage() {
   const [memTitleAr, setMemTitleAr] = useState('');
   const [memTitleEn, setMemTitleEn] = useState('');
   const [memUrl, setMemUrl] = useState('');
+  const [memImageFile, setMemImageFile] = useState(null);
+  const [memImagePreview, setMemImagePreview] = useState('');
+  const [memImageInputType, setMemImageInputType] = useState('file'); // file or url
   const [memCat, setMemCat] = useState('ceremony');
   const [memType, setMemType] = useState('image');
   const [memCoverUrl, setMemCoverUrl] = useState('');
@@ -201,6 +219,8 @@ export default function AdminPage() {
   // Add sponsor form states
   const [spName, setSpName] = useState('');
   const [spLogo, setSpLogo] = useState('');
+  const [spLogoFile, setSpLogoFile] = useState(null);
+  const [spLogoPreview, setSpLogoPreview] = useState('');
   const [spDesc, setSpDesc] = useState('');
   const [spLink, setSpLink] = useState('');
   const [spTier, setSpTier] = useState('gold');
@@ -209,28 +229,44 @@ export default function AdminPage() {
 
   const handleAddSponsor = async (e) => {
     e.preventDefault();
-    if (!spName.trim() || !spLogo.trim()) return;
+    if (!spName.trim()) return;
 
     setIsSubmittingSponsor(true);
-    const result = await addSponsorItem({
-      name: spName,
-      logo: spLogo,
-      desc: spDesc,
-      link: spLink,
-      tier: spTier
-    });
-    setIsSubmittingSponsor(false);
+    try {
+      let finalLogoUrl = spLogo;
+      if (spLogoFile) {
+        finalLogoUrl = await uploadImage(spLogoFile, 'sponsors');
+      } else if (!spLogo.trim()) {
+        alert(locale === 'ar' ? 'يرجى اختيار ملف الشعار أو وضع رابط الشعار.' : 'Please select a logo file or paste a logo URL.');
+        setIsSubmittingSponsor(false);
+        return;
+      }
 
-    if (result && result.success !== false) {
-      setSpName('');
-      setSpLogo('');
-      setSpDesc('');
-      setSpLink('');
-      setSpTier('gold');
-      setSpSuccess(true);
-      setTimeout(() => setSpSuccess(false), 3000);
-    } else {
-      alert(locale === 'ar' ? 'حدث خطأ أثناء إضافة الداعم.' : 'Error adding sponsor.');
+      const result = await addSponsorItem({
+        name: spName,
+        logo: finalLogoUrl,
+        desc: spDesc,
+        link: spLink,
+        tier: spTier
+      });
+      setIsSubmittingSponsor(false);
+
+      if (result && result.success !== false) {
+        setSpName('');
+        setSpLogo('');
+        setSpLogoFile(null);
+        setSpLogoPreview('');
+        setSpDesc('');
+        setSpLink('');
+        setSpTier('gold');
+        setSpSuccess(true);
+        setTimeout(() => setSpSuccess(false), 3000);
+      } else {
+        alert(locale === 'ar' ? 'حدث خطأ أثناء إضافة الداعم.' : 'Error adding sponsor.');
+      }
+    } catch (err) {
+      alert(locale === 'ar' ? 'حدث خطأ أثناء الرفع: ' + err.message : 'Upload error: ' + err.message);
+      setIsSubmittingSponsor(false);
     }
   };
 
@@ -238,6 +274,8 @@ export default function AdminPage() {
   const [editingSponsor, setEditingSponsor] = useState(null);
   const [editSpName, setEditSpName] = useState('');
   const [editSpLogo, setEditSpLogo] = useState('');
+  const [editSpLogoFile, setEditSpLogoFile] = useState(null);
+  const [editSpLogoPreview, setEditSpLogoPreview] = useState('');
   const [editSpDesc, setEditSpDesc] = useState('');
   const [editSpLink, setEditSpLink] = useState('');
   const [editSpTier, setEditSpTier] = useState('gold');
@@ -249,6 +287,8 @@ export default function AdminPage() {
     setEditingSponsor(sp);
     setEditSpName(sp.name_ar || '');
     setEditSpLogo(sp.logo_url || '');
+    setEditSpLogoFile(null);
+    setEditSpLogoPreview(sp.logo_url || '');
     setEditSpDesc(sp.description_ar || '');
     setEditSpLink(sp.website_link || '');
     setEditSpTier(sp.tier || 'gold');
@@ -261,19 +301,29 @@ export default function AdminPage() {
     if (!editingSponsor) return;
     setIsSavingSponsor(true);
     setSponsorEditError('');
-    const result = await updateSponsorItem(editingSponsor.id, {
-      name: editSpName,
-      logo: editSpLogo,
-      desc: editSpDesc,
-      link: editSpLink,
-      tier: editSpTier
-    });
-    setIsSavingSponsor(false);
-    if (result.success) {
-      setSponsorEditSuccess(true);
-      setTimeout(() => { setSponsorEditSuccess(false); setEditingSponsor(null); }, 1500);
-    } else {
-      setSponsorEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+    try {
+      let finalLogoUrl = editSpLogo;
+      if (editSpLogoFile) {
+        finalLogoUrl = await uploadImage(editSpLogoFile, 'sponsors');
+      }
+
+      const result = await updateSponsorItem(editingSponsor.id, {
+        name: editSpName,
+        logo: finalLogoUrl,
+        desc: editSpDesc,
+        link: editSpLink,
+        tier: editSpTier
+      });
+      setIsSavingSponsor(false);
+      if (result.success) {
+        setSponsorEditSuccess(true);
+        setTimeout(() => { setSponsorEditSuccess(false); setEditingSponsor(null); }, 1500);
+      } else {
+        setSponsorEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+      }
+    } catch (err) {
+      setSponsorEditError(err.message);
+      setIsSavingSponsor(false);
     }
   };
 
@@ -286,30 +336,45 @@ export default function AdminPage() {
 
   const handleAddMemory = async (e) => {
     e.preventDefault();
-    if (!memTitleAr.trim() || !memTitleEn.trim() || !memUrl.trim()) return;
+    if (!memTitleAr.trim() || !memTitleEn.trim()) return;
+    if (memType === 'image' && memImageInputType === 'file' && !memImageFile) return;
+    if ((memType === 'video' || (memType === 'image' && memImageInputType === 'url')) && !memUrl.trim()) return;
 
     setIsSubmitting(true);
-    const result = await addMemory({
-      student_id: null,
-      title_ar: memTitleAr,
-      title_en: memTitleEn,
-      url: memUrl,
-      category: memCat,
-      media_type: memType,
-      cover_url: memCoverUrl || null
-    });
-    setIsSubmitting(false);
+    try {
+      let finalUrl = memUrl;
+      if (memType === 'image' && memImageInputType === 'file' && memImageFile) {
+        finalUrl = await uploadImage(memImageFile, 'memories');
+      }
 
-    if (result.success) {
-      setMemTitleAr('');
-      setMemTitleEn('');
-      setMemUrl('');
-      setMemCoverUrl('');
-      setMemSuccess(true);
-      setTimeout(() => setMemSuccess(false), 3000);
-    } else {
-      const errMsg = result.error?.message || result.error || (locale === 'ar' ? 'فشل حفظ التعديلات' : 'Failed to save changes');
-      alert((locale === 'ar' ? 'حدث خطأ أثناء إضافة الذكرى: ' : 'Error adding memory: ') + errMsg);
+      const result = await addMemory({
+        student_id: null,
+        title_ar: memTitleAr,
+        title_en: memTitleEn,
+        url: finalUrl,
+        category: memCat,
+        media_type: memType,
+        cover_url: memCoverUrl || null
+      });
+      setIsSubmitting(false);
+
+      if (result.success) {
+        setMemTitleAr('');
+        setMemTitleEn('');
+        setMemUrl('');
+        setMemImageFile(null);
+        setMemImagePreview('');
+        setMemImageInputType('file');
+        setMemCoverUrl('');
+        setMemSuccess(true);
+        setTimeout(() => setMemSuccess(false), 3000);
+      } else {
+        const errMsg = result.error?.message || result.error || (locale === 'ar' ? 'فشل حفظ التعديلات' : 'Failed to save changes');
+        alert((locale === 'ar' ? 'حدث خطأ أثناء إضافة الذكرى: ' : 'Error adding memory: ') + errMsg);
+      }
+    } catch (err) {
+      alert((locale === 'ar' ? 'حدث خطأ أثناء الرفع: ' : 'Upload error: ') + err.message);
+      setIsSubmitting(false);
     }
   };
 
@@ -318,6 +383,9 @@ export default function AdminPage() {
   const [editMemTitleAr, setEditMemTitleAr] = useState('');
   const [editMemTitleEn, setEditMemTitleEn] = useState('');
   const [editMemUrl, setEditMemUrl] = useState('');
+  const [editMemImageFile, setEditMemImageFile] = useState(null);
+  const [editMemImagePreview, setEditMemImagePreview] = useState('');
+  const [editMemImageInputType, setEditMemImageInputType] = useState('url'); // url or file
   const [editMemCat, setEditMemCat] = useState('ceremony');
   const [editMemType, setEditMemType] = useState('image');
   const [editMemCoverUrl, setEditMemCoverUrl] = useState('');
@@ -330,6 +398,9 @@ export default function AdminPage() {
     setEditMemTitleAr(m.title_ar || '');
     setEditMemTitleEn(m.title_en || '');
     setEditMemUrl(m.url || '');
+    setEditMemImageFile(null);
+    setEditMemImagePreview(m.media_type === 'image' ? m.url : '');
+    setEditMemImageInputType('url');
     setEditMemCat(m.category || 'ceremony');
     setEditMemType(m.media_type || 'image');
     setEditMemCoverUrl(m.cover_url || '');
@@ -342,23 +413,33 @@ export default function AdminPage() {
     if (!editingMemory) return;
     setIsSavingMemory(true);
     setMemoryEditError('');
-    const result = await updateMemory(editingMemory.id, {
-      title_ar: editMemTitleAr,
-      title_en: editMemTitleEn,
-      url: editMemUrl,
-      category: editMemCat,
-      media_type: editMemType,
-      cover_url: editMemCoverUrl || null
-    });
-    setIsSavingMemory(false);
-    if (result.success) {
-      setMemoryEditSuccess(true);
-      setTimeout(() => {
-        setMemoryEditSuccess(false);
-        setEditingMemory(null);
-      }, 1500);
-    } else {
-      setMemoryEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+    try {
+      let finalUrl = editMemUrl;
+      if (editMemType === 'image' && editMemImageInputType === 'file' && editMemImageFile) {
+        finalUrl = await uploadImage(editMemImageFile, 'memories');
+      }
+
+      const result = await updateMemory(editingMemory.id, {
+        title_ar: editMemTitleAr,
+        title_en: editMemTitleEn,
+        url: finalUrl,
+        category: editMemCat,
+        media_type: editMemType,
+        cover_url: editMemCoverUrl || null
+      });
+      setIsSavingMemory(false);
+      if (result.success) {
+        setMemoryEditSuccess(true);
+        setTimeout(() => {
+          setMemoryEditSuccess(false);
+          setEditingMemory(null);
+        }, 1500);
+      } else {
+        setMemoryEditError(result.error || (locale === 'ar' ? 'فشل حفظ التعديلات.' : 'Failed to save changes.'));
+      }
+    } catch (err) {
+      setMemoryEditError(err.message);
+      setIsSavingMemory(false);
     }
   };
 
@@ -592,22 +673,67 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-on-surface-variant font-bold block mb-1">
-                  {memType === 'image' 
-                    ? (locale === 'ar' ? 'رابط الصورة الإلكتروني' : 'Image URL')
-                    : (locale === 'ar' ? 'رابط الفيديو الإلكتروني (يوتيوب أو مباشر)' : 'Video URL (YouTube or Direct)')
-                  }
-                </label>
-                <input
-                  type="url"
-                  value={memUrl}
-                  onChange={(e) => setMemUrl(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
-                  placeholder="https://..."
-                  required
-                />
-              </div>
+              {memType === 'image' ? (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-on-surface-variant font-bold block mb-1">
+                    {locale === 'ar' ? 'طريقة إضافة الصورة' : 'Image Addition Method'}
+                  </label>
+                  <div className="flex gap-4 mb-2 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={memImageInputType === 'file'} onChange={() => setMemImageInputType('file')} className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'تحميل ملف' : 'Upload File'}
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={memImageInputType === 'url'} onChange={() => setMemImageInputType('url')} className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'رابط إلكتروني (URL)' : 'Paste URL'}
+                    </label>
+                  </div>
+
+                  {memImageInputType === 'file' ? (
+                    <div className="flex flex-col gap-2 mt-1">
+                      {memImagePreview && (
+                        <img src={memImagePreview} alt="preview" className="h-28 w-auto object-contain border border-outline-variant/20 p-1 align-self-start bg-black/5" />
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setMemImageFile(file);
+                            setMemImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                        required={!memImageFile}
+                        className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                      />
+                    </div>
+                  ) : (
+                    <input 
+                      type="url" 
+                      value={memUrl}
+                      onChange={(e) => setMemUrl(e.target.value)}
+                      className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
+                      placeholder="https://..."
+                      required
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-on-surface-variant font-bold block mb-1">
+                    {locale === 'ar' ? 'رابط الفيديو الإلكتروني (يوتيوب أو مباشر)' : 'Video URL (YouTube or Direct)'}
+                  </label>
+                  <input
+                    type="url"
+                    value={memUrl}
+                    onChange={(e) => setMemUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-2 text-sm text-primary w-full"
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
+              )}
 
               {memType === 'video' && (
                 <div className="flex flex-col gap-2">
@@ -752,21 +878,40 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <label className="text-xs text-secondary font-bold">
-                    {locale === 'ar' ? 'رابط الشعار (URL) *' : 'Logo URL *'}
+                    {locale === 'ar' ? 'شعار الداعم *' : 'Sponsor Logo *'}
                   </label>
-                  <input
-                    type="url"
-                    value={spLogo}
-                    onChange={(e) => setSpLogo(e.target.value)}
-                    required
-                    placeholder="https://example.com/logo.png"
-                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                  />
-                  {spLogo && (
-                    <img src={spLogo} alt="preview" className="mt-2 h-12 w-auto object-contain border border-outline-variant/20 p-1" onError={(e) => e.target.style.display='none'} />
-                  )}
+                  <div className="flex flex-col gap-2 mt-1">
+                    {spLogoPreview ? (
+                      <div className="relative group h-14 w-32 border border-outline-variant/20 p-1 bg-black/5 flex items-center justify-center shrink-0">
+                        <img src={spLogoPreview} alt="preview" className="h-full w-full object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpLogoFile(null);
+                            setSpLogoPreview('');
+                          }}
+                          className="absolute inset-0 bg-black/60 text-white text-[9px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                        >
+                          {locale === 'ar' ? 'حذف الشعار' : 'Remove Logo'}
+                        </button>
+                      </div>
+                    ) : null}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setSpLogoFile(file);
+                          setSpLogoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      required={!spLogoFile}
+                      className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -922,11 +1067,38 @@ export default function AdminPage() {
                 <input type="text" value={editSpName} onChange={e => setEditSpName(e.target.value)} required
                   className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full" />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'رابط الشعار (URL)' : 'Logo URL'}</label>
-                <input type="url" value={editSpLogo} onChange={e => setEditSpLogo(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full" />
-                {editSpLogo && <img src={editSpLogo} alt="preview" className="mt-2 h-12 object-contain border border-outline-variant/20 p-1" onError={e => e.target.style.display='none'} />}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'شعار الداعم' : 'Sponsor Logo'}</label>
+                <div className="flex flex-col gap-2 mt-1">
+                  {editSpLogoPreview ? (
+                    <div className="relative group h-14 w-32 border border-outline-variant/20 p-1 bg-black/5 flex items-center justify-center shrink-0">
+                      <img src={editSpLogoPreview} alt="preview" className="h-full w-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditSpLogoFile(null);
+                          setEditSpLogo('');
+                          setEditSpLogoPreview('');
+                        }}
+                        className="absolute inset-0 bg-black/60 text-white text-[9px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'حذف الشعار' : 'Remove Logo'}
+                      </button>
+                    </div>
+                  ) : null}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditSpLogoFile(file);
+                        setEditSpLogoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                  />
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'الوصف المختصر' : 'Short Description'}</label>
@@ -1103,7 +1275,7 @@ export default function AdminPage() {
                           onClick={() => startEditingDoctor(d)}
                           className="bg-[#efe0cd] text-primary hover:bg-[#c59e62]/20 text-[9px] font-bold px-2 py-1 border-0 rounded cursor-pointer"
                         >
-                          {locale === 'ar' ? 'تعديل الصورة' : 'Edit Image'}
+                          {locale === 'ar' ? 'تعديل' : 'Edit'}
                         </button>
                         <button
                           onClick={async () => {
@@ -1135,7 +1307,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Edit Doctor Image Modal */}
+      {/* Edit Doctor Modal */}
       {editingDoctor && (
         <div className="fixed inset-0 bg-black/65 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-300">
@@ -1147,23 +1319,62 @@ export default function AdminPage() {
             </button>
             
             <h2 className="text-xl font-bold text-primary mb-6 border-b border-[#c59e62]/20 pb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#c59e62]">image</span>
-              {locale === 'ar' ? `تعديل صورة ${editingDoctor.name_ar}` : `Edit Photo for ${editingDoctor.name_ar}`}
+              <span className="material-symbols-outlined text-[#c59e62]">edit_square</span>
+              {locale === 'ar' ? `تعديل بيانات الدكتور` : `Edit Doctor Speech Details`}
             </h2>
             
-            {doctorImageEditSuccess && (
+            {doctorEditSuccess && (
               <div className="mb-4 p-3 bg-green-100 dark:bg-green-950/40 border border-green-500/20 text-green-700 dark:text-green-300 font-bold text-xs text-center">
-                {locale === 'ar' ? '✅ تم حفظ الصورة بنجاح!' : '✅ Image updated successfully!'}
+                {locale === 'ar' ? '✅ تم حفظ البيانات بنجاح!' : '✅ Details updated successfully!'}
               </div>
             )}
 
-            {doctorImageEditError && (
+            {doctorEditError && (
               <div className="mb-4 p-3 bg-error-container border border-error/20 text-error font-bold text-xs text-center">
-                {doctorImageEditError}
+                {doctorEditError}
               </div>
             )}
 
-            <form onSubmit={handleSaveDoctorImage} className="space-y-4 text-right rtl:text-right ltr:text-left">
+            <form onSubmit={handleSaveDoctor} className="space-y-4 text-right rtl:text-right ltr:text-left">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">
+                  {locale === 'ar' ? 'اسم الدكتور / الأستاذ *' : 'Doctor Name *'}
+                </label>
+                <input
+                  type="text"
+                  value={editDocNameAr}
+                  onChange={(e) => setEditDocNameAr(e.target.value)}
+                  required
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1 text-sm text-primary w-full"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">
+                  {locale === 'ar' ? 'المسمى الوظيفي / القسم *' : 'Title / Dept *'}
+                </label>
+                <input
+                  type="text"
+                  value={editDocTitleAr}
+                  onChange={(e) => setEditDocTitleAr(e.target.value)}
+                  required
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1 text-sm text-primary w-full"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">
+                  {locale === 'ar' ? 'نص الكلمة / التهنئة *' : 'Speech Text *'}
+                </label>
+                <textarea
+                  value={editDocSpeechAr}
+                  onChange={(e) => setEditDocSpeechAr(e.target.value)}
+                  required
+                  rows="4"
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1 text-sm text-primary resize-none w-full leading-relaxed"
+                />
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'طريقة تحديث الصورة' : 'Image Update Method'}</label>
                 <div className="flex gap-4 mb-2 text-xs">
@@ -1181,7 +1392,10 @@ export default function AdminPage() {
                   <input 
                     type="url" 
                     value={editDocImageUrl}
-                    onChange={(e) => setEditDocImageUrl(e.target.value)}
+                    onChange={(e) => {
+                      setEditDocImageUrl(e.target.value);
+                      setEditDocImagePreview(e.target.value);
+                    }}
                     className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
                     placeholder="https://example.com/image.jpg"
                     required
@@ -1190,10 +1404,40 @@ export default function AdminPage() {
                   <input 
                     type="file" 
                     accept="image/*"
-                    onChange={(e) => setEditDocImageFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditDocImageFile(file);
+                        setEditDocImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
                     required={!editDocImageFile}
                   />
+                )}
+
+                {editDocImagePreview && (
+                  <div className="mt-2 flex justify-center">
+                    <div className="w-16 h-16 rounded-full border border-outline-variant/30 overflow-hidden relative group">
+                      <img 
+                        src={editDocImagePreview} 
+                        alt="Doctor Preview" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditDocImageFile(null);
+                          setEditDocImageUrl('');
+                          setEditDocImagePreview('');
+                        }}
+                        className="absolute inset-0 bg-black/60 text-white text-[8px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'حذف' : 'Remove'}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -1207,11 +1451,11 @@ export default function AdminPage() {
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSavingDoctorImage}
+                  disabled={isSavingDoctor}
                   className="px-6 py-2 bg-[#c59e62] text-primary hover:bg-[#ffdeae] text-xs font-bold flex items-center gap-1.5 border-0 cursor-pointer"
                 >
-                  {isSavingDoctorImage && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
-                  {locale === 'ar' ? 'حفظ الصورة' : 'Save Image'}
+                  {isSavingDoctor && <span className="material-symbols-outlined animate-spin text-[14px]">refresh</span>}
+                  {locale === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -1272,24 +1516,76 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'الصورة الشخصية (رابط URL)' : 'Profile Image URL'}</label>
-                <input 
-                  type="url" 
-                  value={editProfileImage}
-                  onChange={(e) => setEditProfileImage(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'الصورة الشخصية' : 'Profile Image'}</label>
+                <div className="flex items-center gap-4 mt-1">
+                  <div className="w-12 h-12 rounded-full border border-primary/20 overflow-hidden bg-black/5 shrink-0 flex items-center justify-center relative group">
+                    {editProfileImagePreview ? (
+                      <>
+                        <img src={editProfileImagePreview} alt="preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditProfileImageFile(null);
+                            setEditProfileImage('');
+                            setEditProfileImagePreview('');
+                          }}
+                          className="absolute inset-0 bg-black/60 text-white text-[8px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                        >
+                          {locale === 'ar' ? 'حذف' : 'Remove'}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="material-symbols-outlined text-xl text-secondary">person</span>
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditProfileImageFile(file);
+                        setEditProfileImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'صورة الغلاف (رابط URL)' : 'Cover Image URL'}</label>
-                <input 
-                  type="url" 
-                  value={editCoverImage}
-                  onChange={(e) => setEditCoverImage(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'صورة الغلاف' : 'Cover Image'}</label>
+                <div className="flex flex-col gap-2 mt-1">
+                  {editCoverImagePreview ? (
+                    <div className="relative group">
+                      <img src={editCoverImagePreview} alt="preview" className="h-16 w-full object-cover border border-primary/20" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCoverImageFile(null);
+                          setEditCoverImage('');
+                          setEditCoverImagePreview('');
+                        }}
+                        className="absolute inset-0 bg-black/60 text-white text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'حذف صورة الغلاف' : 'Remove Cover'}
+                      </button>
+                    </div>
+                  ) : null}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditCoverImageFile(file);
+                        setEditCoverImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -1389,21 +1685,65 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">
-                  {editMemType === 'image' 
-                    ? (locale === 'ar' ? 'رابط الصورة الإلكتروني' : 'Image URL')
-                    : (locale === 'ar' ? 'رابط الفيديو الإلكتروني' : 'Video URL')
-                  }
-                </label>
-                <input 
-                  type="url" 
-                  value={editMemUrl}
-                  onChange={(e) => setEditMemUrl(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                  required
-                />
-              </div>
+              {editMemType === 'image' ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'طريقة تحديث الصورة' : 'Image Update Method'}</label>
+                  <div className="flex gap-4 mb-2 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={editMemImageInputType === 'file'} onChange={() => setEditMemImageInputType('file')} className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'تحميل ملف جديد' : 'Upload File'}
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" checked={editMemImageInputType === 'url'} onChange={() => setEditMemImageInputType('url')} className="accent-[#c59e62]" />
+                      {locale === 'ar' ? 'رابط إلكتروني (URL)' : 'Paste URL'}
+                    </label>
+                  </div>
+
+                  {editMemImageInputType === 'file' ? (
+                    <div className="flex flex-col gap-2 mt-1">
+                      {editMemImagePreview && (
+                        <img src={editMemImagePreview} alt="preview" className="h-28 w-auto object-contain border border-outline-variant/20 p-1 align-self-start bg-black/5" />
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setEditMemImageFile(file);
+                            setEditMemImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                        className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                        required={!editMemImageFile}
+                      />
+                    </div>
+                  ) : (
+                    <input 
+                      type="url" 
+                      value={editMemUrl}
+                      onChange={(e) => {
+                        setEditMemUrl(e.target.value);
+                        setEditMemImagePreview(e.target.value);
+                      }}
+                      className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                      placeholder="https://..."
+                      required
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'رابط الفيديو الإلكتروني' : 'Video URL'}</label>
+                  <input 
+                    type="url" 
+                    value={editMemUrl}
+                    onChange={(e) => setEditMemUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                    required
+                  />
+                </div>
+              )}
 
               {editMemType === 'video' && (
                 <div className="flex flex-col gap-1">

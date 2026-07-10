@@ -372,6 +372,28 @@ export const DataProvider = ({ children }) => {
     return { success: false, error: error?.message || 'Failed to update doctor image' };
   };
 
+  const updateDoctor = async (id, doctorData) => {
+    const { data, error } = await supabase
+      .from('doctors')
+      .update({
+        name_ar: doctorData.name_ar,
+        name_en: doctorData.name_en || doctorData.name_ar,
+        speech_ar: doctorData.speech_ar,
+        speech_en: doctorData.speech_en || doctorData.speech_ar,
+        image_url: doctorData.image_url,
+        title_ar: doctorData.title_ar,
+        title_en: doctorData.title_en || doctorData.title_ar
+      })
+      .eq('id', id)
+      .select();
+
+    if (!error && data && data.length > 0) {
+      setDoctors(prev => prev.map(d => d.id === id ? data[0] : d));
+      return { success: true, data: data[0] };
+    }
+    return { success: false, error: error?.message || 'Failed to update doctor' };
+  };
+
   const deleteDoctor = async (id) => {
     const { data, error } = await supabase.from('doctors').delete().eq('id', id).select();
     if (!error && data && data.length > 0) {
@@ -387,7 +409,7 @@ export const DataProvider = ({ children }) => {
       addWish, deleteWish, deleteStudent, addMemory, deleteMemory, updateMemoryLikes, updateMemory,
       updateStudentStatus, updateWishStatus, updateStudent,
       addNewsItem, deleteNewsItem, addSponsorItem, deleteSponsorItem, updateSponsorItem,
-      addDoctor, updateDoctorImage, deleteDoctor
+      addDoctor, updateDoctorImage, updateDoctor, deleteDoctor
     }}>
       {children}
     </DataContext.Provider>

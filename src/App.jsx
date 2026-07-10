@@ -126,6 +126,7 @@ function AppContent() {
 
     if (token === 'grad2026-secure-invite' || token === 'admin2026-secure-invite') {
       setInviteToken(token);
+      sessionStorage.setItem('inviteToken', token);
       _setActivePage('register-student');
       shouldClear = true;
     } else if (params.get('login') === 'true') {
@@ -134,6 +135,12 @@ function AppContent() {
     } else if (page) {
       if (page === 'profile' && id) {
         setSelectedStudentId(id);
+      }
+      if (page === 'register-student') {
+        const storedToken = sessionStorage.getItem('inviteToken');
+        if (storedToken) {
+          setInviteToken(storedToken);
+        }
       }
       _setActivePage(page);
     } else {

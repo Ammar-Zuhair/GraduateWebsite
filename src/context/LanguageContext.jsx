@@ -188,7 +188,7 @@ export const LanguageProvider = ({ children }) => {
     // Dynamically update document properties
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
-    document.title = locale === 'ar' ? 'حفل التخرج - دفعة 2026' : 'Class of 2026 - Graduation';
+    document.title = locale === 'ar' ? 'حفل التخرج - دفعة تقنية ومعمار' : 'Class of 2026 - Graduation';
   }, [locale]);
 
   const t = (key) => {

@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import GalleryLightbox from '../components/ui/GalleryLightbox';
+import { uploadImage } from '../lib/supabase';
 
 export default function StudentProfilePage({ studentId, onBack }) {
   const { locale } = useLanguage();
@@ -13,34 +14,51 @@ export default function StudentProfilePage({ studentId, onBack }) {
 
   // Add Photo states
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
+  const [photoInputType, setPhotoInputType] = useState('file'); // file or url
   const [photoUrl, setPhotoUrl] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [photoTitle, setPhotoTitle] = useState('');
   const [isAddingPhotoLoading, setIsAddingPhotoLoading] = useState(false);
   const [addPhotoError, setAddPhotoError] = useState('');
 
   const handleAddPhoto = async (e) => {
     e.preventDefault();
-    if (!photoUrl.trim()) return;
+    if (photoInputType === 'file' && !photoFile) return;
+    if (photoInputType === 'url' && !photoUrl.trim()) return;
 
     setIsAddingPhotoLoading(true);
     setAddPhotoError('');
-    const result = await addMemory({
-      student_id: student.id,
-      title_ar: photoTitle.trim() || 'صورة من المعرض',
-      title_en: photoTitle.trim() || 'Gallery Photo',
-      url: photoUrl.trim(),
-      category: 'campus',
-      media_type: 'image'
-    });
-    setIsAddingPhotoLoading(false);
+    try {
+      let finalUrl = photoUrl.trim();
+      if (photoInputType === 'file' && photoFile) {
+        finalUrl = await uploadImage(photoFile, 'memories');
+      }
 
-    if (result.success) {
-      setIsAddingPhoto(false);
-      setPhotoUrl('');
-      setPhotoTitle('');
-      alert(locale === 'ar' ? '✅ تم إضافة الصورة إلى معرضك بنجاح!' : '✅ Photo added to your gallery successfully!');
-    } else {
-      setAddPhotoError(result.error || (locale === 'ar' ? 'فشل إضافة الصورة.' : 'Failed to add photo.'));
+      const result = await addMemory({
+        student_id: student.id,
+        title_ar: photoTitle.trim() || 'صورة من المعرض',
+        title_en: photoTitle.trim() || 'Gallery Photo',
+        url: finalUrl,
+        category: 'campus',
+        media_type: 'image'
+      });
+
+      if (result.success) {
+        setIsAddingPhoto(false);
+        setPhotoFile(null);
+        setPhotoPreview('');
+        setPhotoUrl('');
+        setPhotoTitle('');
+        setPhotoInputType('file');
+        alert(locale === 'ar' ? '✅ تم إضافة الصورة إلى معرضك بنجاح!' : '✅ Photo added to your gallery successfully!');
+      } else {
+        setAddPhotoError(result.error || (locale === 'ar' ? 'فشل إضافة الصورة.' : 'Failed to add photo.'));
+      }
+    } catch (err) {
+      setAddPhotoError(locale === 'ar' ? 'فشل رفع الصورة: ' + err.message : 'Failed to upload image: ' + err.message);
+    } finally {
+      setIsAddingPhotoLoading(false);
     }
   };
 
@@ -49,7 +67,11 @@ export default function StudentProfilePage({ studentId, onBack }) {
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editProfileImage, setEditProfileImage] = useState('');
+  const [editProfileImageFile, setEditProfileImageFile] = useState(null);
+  const [editProfileImagePreview, setEditProfileImagePreview] = useState('');
   const [editCoverImage, setEditCoverImage] = useState('');
+  const [editCoverImageFile, setEditCoverImageFile] = useState(null);
+  const [editCoverImagePreview, setEditCoverImagePreview] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Retrieve current student
@@ -111,23 +133,42 @@ export default function StudentProfilePage({ studentId, onBack }) {
     setEditBio(student[`bio_${locale}`] || student.bio_ar || '');
     setEditProfileImage(student.profile_image || '');
     setEditCoverImage(student.cover_image || '');
+    setEditProfileImageFile(null);
+    setEditProfileImagePreview(student.profile_image || '');
+    setEditCoverImageFile(null);
+    setEditCoverImagePreview(student.cover_image || '');
     setIsEditing(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    const res = await updateStudent(student.id, {
-      name_ar: editName,
-      bio_ar: editBio,
-      profile_image: editProfileImage,
-      cover_image: editCoverImage
-    });
-    setIsSaving(false);
-    if (res.success) {
-      setIsEditing(false);
-    } else {
-      alert(locale === 'ar' ? 'حدث خطأ أثناء حفظ التغييرات' : 'Error updating profile');
+    try {
+      let finalProfileUrl = editProfileImage;
+      if (editProfileImageFile) {
+        finalProfileUrl = await uploadImage(editProfileImageFile, 'profiles');
+      }
+
+      let finalCoverUrl = editCoverImage;
+      if (editCoverImageFile) {
+        finalCoverUrl = await uploadImage(editCoverImageFile, 'covers');
+      }
+
+      const res = await updateStudent(student.id, {
+        name_ar: editName,
+        bio_ar: editBio,
+        profile_image: finalProfileUrl,
+        cover_image: finalCoverUrl
+      });
+      setIsSaving(false);
+      if (res.success) {
+        setIsEditing(false);
+      } else {
+        alert(locale === 'ar' ? 'حدث خطأ أثناء حفظ التغييرات' : 'Error updating profile');
+      }
+    } catch (err) {
+      alert(locale === 'ar' ? 'حدث خطأ أثناء الرفع: ' + err.message : 'Upload error: ' + err.message);
+      setIsSaving(false);
     }
   };
 
@@ -328,24 +369,76 @@ export default function StudentProfilePage({ studentId, onBack }) {
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'الصورة الشخصية (رابط URL)' : 'Profile Image URL'}</label>
-                <input 
-                  type="url" 
-                  value={editProfileImage}
-                  onChange={(e) => setEditProfileImage(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'الصورة الشخصية' : 'Profile Image'}</label>
+                <div className="flex items-center gap-4 mt-1">
+                  <div className="w-12 h-12 rounded-full border border-primary/20 overflow-hidden bg-black/5 shrink-0 flex items-center justify-center relative group">
+                    {editProfileImagePreview ? (
+                      <>
+                        <img src={editProfileImagePreview} alt="preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditProfileImageFile(null);
+                            setEditProfileImage('');
+                            setEditProfileImagePreview('');
+                          }}
+                          className="absolute inset-0 bg-black/60 text-white text-[8px] font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                        >
+                          {locale === 'ar' ? 'حذف' : 'Remove'}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="material-symbols-outlined text-xl text-secondary">person</span>
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditProfileImageFile(file);
+                        setEditProfileImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'صورة الغلاف (رابط URL)' : 'Cover Image URL'}</label>
-                <input 
-                  type="url" 
-                  value={editCoverImage}
-                  onChange={(e) => setEditCoverImage(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'صورة الغلاف' : 'Cover Image'}</label>
+                <div className="flex flex-col gap-2 mt-1">
+                  {editCoverImagePreview ? (
+                    <div className="relative group">
+                      <img src={editCoverImagePreview} alt="preview" className="h-16 w-full object-cover border border-primary/20" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCoverImageFile(null);
+                          setEditCoverImage('');
+                          setEditCoverImagePreview('');
+                        }}
+                        className="absolute inset-0 bg-black/60 text-white text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 border-0 cursor-pointer"
+                      >
+                        {locale === 'ar' ? 'حذف صورة الغلاف' : 'Remove Cover Image'}
+                      </button>
+                    </div>
+                  ) : null}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditCoverImageFile(file);
+                        setEditCoverImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -396,8 +489,11 @@ export default function StudentProfilePage({ studentId, onBack }) {
             <button 
               onClick={() => {
                 setIsAddingPhoto(false);
+                setPhotoFile(null);
+                setPhotoPreview('');
                 setPhotoUrl('');
                 setPhotoTitle('');
+                setPhotoInputType('file');
                 setAddPhotoError('');
               }}
               className="absolute top-4 right-4 text-primary hover:text-secondary bg-transparent border-0 cursor-pointer"
@@ -417,16 +513,48 @@ export default function StudentProfilePage({ studentId, onBack }) {
             )}
 
             <form onSubmit={handleAddPhoto} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'رابط الصورة الإلكتروني (URL)' : 'Photo Image URL'}</label>
-                <input 
-                  type="url" 
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
-                  placeholder="https://..."
-                  required
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'طريقة إضافة الصورة' : 'Image Addition Method'}</label>
+                <div className="flex gap-4 mb-2 text-xs">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input type="radio" checked={photoInputType === 'file'} onChange={() => setPhotoInputType('file')} className="accent-[#c59e62]" />
+                    {locale === 'ar' ? 'تحميل ملف (من الهاتف)' : 'Upload File'}
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input type="radio" checked={photoInputType === 'url'} onChange={() => setPhotoInputType('url')} className="accent-[#c59e62]" />
+                    {locale === 'ar' ? 'رابط إلكتروني (URL)' : 'Paste URL'}
+                  </label>
+                </div>
+
+                {photoInputType === 'file' ? (
+                  <div className="flex flex-col gap-2 mt-1">
+                    {photoPreview && (
+                      <img src={photoPreview} alt="preview" className="h-28 w-full object-cover border border-primary/20" />
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      required={!photoFile}
+                      className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
+                    />
+                  </div>
+                ) : (
+                  <input 
+                    type="url" 
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                    className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full"
+                    placeholder="https://..."
+                    required
+                  />
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -445,8 +573,11 @@ export default function StudentProfilePage({ studentId, onBack }) {
                   type="button"
                   onClick={() => {
                     setIsAddingPhoto(false);
+                    setPhotoFile(null);
+                    setPhotoPreview('');
                     setPhotoUrl('');
                     setPhotoTitle('');
+                    setPhotoInputType('file');
                     setAddPhotoError('');
                   }}
                   className="px-4 py-2 border border-outline-variant/30 text-secondary text-xs font-bold hover:bg-black/5 bg-transparent"
