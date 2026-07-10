@@ -173,7 +173,7 @@ export default function CreateStudentProfilePage({ setActivePage }) {
                 </div>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                   onChange={handleFileChange}
                   className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
                 />

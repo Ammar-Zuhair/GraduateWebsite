@@ -398,7 +398,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
                   </div>
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -440,7 +440,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
                   ) : null}
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -553,7 +553,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     )}
                     <input 
                       type="file" 
-                      accept="image/*"
+                      accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {

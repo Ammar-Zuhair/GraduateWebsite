@@ -700,7 +700,7 @@ export default function AdminPage() {
                       )}
                       <input 
                         type="file" 
-                        accept="image/*"
+                        accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
@@ -912,7 +912,7 @@ export default function AdminPage() {
                     ) : null}
                     <input 
                       type="file" 
-                      accept="image/*"
+                      accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
@@ -1108,7 +1108,7 @@ export default function AdminPage() {
                   ) : null}
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -1431,7 +1431,7 @@ export default function AdminPage() {
                 ) : (
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -1577,7 +1577,7 @@ export default function AdminPage() {
                   </div>
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -1619,7 +1619,7 @@ export default function AdminPage() {
                   ) : null}
                   <input 
                     type="file" 
-                    accept="image/*"
+                    accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -1758,7 +1758,7 @@ export default function AdminPage() {
                       )}
                       <input 
                         type="file" 
-                        accept="image/*"
+                        accept="image/*, application/octet-stream, .jpg, .jpeg, .png, .webp"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
