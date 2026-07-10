@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import GalleryLightbox from '../components/ui/GalleryLightbox';
 import { uploadImage } from '../lib/supabase';
+import ImageCropperModal from '../components/ui/ImageCropperModal';
 
 export default function StudentProfilePage({ studentId, onBack }) {
   const { locale } = useLanguage();
@@ -11,6 +12,9 @@ export default function StudentProfilePage({ studentId, onBack }) {
   const { user } = useAuth();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const [cropperSrc, setCropperSrc] = useState(null);
+  const [cropperConfig, setCropperConfig] = useState(null);
 
   // Add Photo states
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
@@ -398,8 +402,16 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditProfileImageFile(file);
-                        setEditProfileImagePreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 1,
+                          circular: true,
+                          onCrop: (croppedFile) => {
+                            setEditProfileImageFile(croppedFile);
+                            setEditProfileImagePreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -432,8 +444,16 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditCoverImageFile(file);
-                        setEditCoverImagePreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 2.5,
+                          circular: false,
+                          onCrop: (croppedFile) => {
+                            setEditCoverImageFile(croppedFile);
+                            setEditCoverImagePreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -537,8 +557,16 @@ export default function StudentProfilePage({ studentId, onBack }) {
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
-                          setPhotoFile(file);
-                          setPhotoPreview(URL.createObjectURL(file));
+                          setCropperSrc(URL.createObjectURL(file));
+                          setCropperConfig({
+                            aspectRatio: 1.5,
+                            circular: false,
+                            onCrop: (croppedFile) => {
+                              setPhotoFile(croppedFile);
+                              setPhotoPreview(URL.createObjectURL(croppedFile));
+                            }
+                          });
+                          e.target.value = '';
                         }
                       }}
                       required={!photoFile}
@@ -596,6 +624,23 @@ export default function StudentProfilePage({ studentId, onBack }) {
             </form>
           </div>
         </div>
+      )}
+      {cropperSrc && cropperConfig && (
+        <ImageCropperModal
+          imageSrc={cropperSrc}
+          aspectRatio={cropperConfig.aspectRatio}
+          circular={cropperConfig.circular}
+          locale={locale}
+          onClose={() => {
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+          onCrop={(croppedFile) => {
+            cropperConfig.onCrop(croppedFile);
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+        />
       )}
     </div>
   );

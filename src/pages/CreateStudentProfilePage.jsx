@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase, uploadImage } from '../lib/supabase';
 import { useData } from '../context/DataContext';
+import ImageCropperModal from '../components/ui/ImageCropperModal';
 
 export default function CreateStudentProfilePage({ setActivePage }) {
   const { locale } = useLanguage();
@@ -19,11 +20,22 @@ export default function CreateStudentProfilePage({ setActivePage }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const [cropperSrc, setCropperSrc] = useState(null);
+  const [cropperConfig, setCropperConfig] = useState(null);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfileImageFile(file);
-      setProfileImagePreview(URL.createObjectURL(file));
+      setCropperSrc(URL.createObjectURL(file));
+      setCropperConfig({
+        aspectRatio: 1,
+        circular: true,
+        onCrop: (croppedFile) => {
+          setProfileImageFile(croppedFile);
+          setProfileImagePreview(URL.createObjectURL(croppedFile));
+        }
+      });
+      e.target.value = '';
     }
   };
 
@@ -206,6 +218,23 @@ export default function CreateStudentProfilePage({ setActivePage }) {
           </button>
         </form>
       </div>
+      {cropperSrc && cropperConfig && (
+        <ImageCropperModal
+          imageSrc={cropperSrc}
+          aspectRatio={cropperConfig.aspectRatio}
+          circular={cropperConfig.circular}
+          locale={locale}
+          onClose={() => {
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+          onCrop={(croppedFile) => {
+            cropperConfig.onCrop(croppedFile);
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+        />
+      )}
     </main>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { uploadImage } from '../lib/supabase';
+import ImageCropperModal from '../components/ui/ImageCropperModal';
 
 export default function StudentRegisterPage({ setActivePage, inviteToken }) {
   const { locale } = useLanguage();
@@ -34,11 +35,23 @@ export default function StudentRegisterPage({ setActivePage, inviteToken }) {
   const [formSuccess, setFormSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [cropperSrc, setCropperSrc] = useState(null);
+  const [cropperConfig, setCropperConfig] = useState(null);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setStudentImageFile(file);
-      setStudentImagePreview(URL.createObjectURL(file));
+      setCropperSrc(URL.createObjectURL(file));
+      setCropperConfig({
+        aspectRatio: 1,
+        circular: true,
+        onCrop: (croppedFile) => {
+          setStudentImageFile(croppedFile);
+          setStudentImagePreview(URL.createObjectURL(croppedFile));
+        }
+      });
+      // Clear input so the same file can be selected again
+      e.target.value = '';
     }
   };
 
@@ -303,6 +316,23 @@ export default function StudentRegisterPage({ setActivePage, inviteToken }) {
           </button>
         </form>
       </div>
+      {cropperSrc && cropperConfig && (
+        <ImageCropperModal
+          imageSrc={cropperSrc}
+          aspectRatio={cropperConfig.aspectRatio}
+          circular={cropperConfig.circular}
+          locale={locale}
+          onClose={() => {
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+          onCrop={(croppedFile) => {
+            cropperConfig.onCrop(croppedFile);
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+        />
+      )}
     </main>
   );
 }

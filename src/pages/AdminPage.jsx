@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { uploadImage } from '../lib/supabase';
+import ImageCropperModal from '../components/ui/ImageCropperModal';
 
 export default function AdminPage() {
   const { locale } = useLanguage();
+  const [cropperSrc, setCropperSrc] = useState(null);
+  const [cropperConfig, setCropperConfig] = useState(null);
+
   const { 
     students, memories, wishes, sponsors, doctors,
     deleteStudent, deleteWish, addMemory, deleteMemory, updateMemory,
@@ -700,8 +704,16 @@ export default function AdminPage() {
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            setMemImageFile(file);
-                            setMemImagePreview(URL.createObjectURL(file));
+                            setCropperSrc(URL.createObjectURL(file));
+                            setCropperConfig({
+                              aspectRatio: 1.5,
+                              circular: false,
+                              onCrop: (croppedFile) => {
+                                setMemImageFile(croppedFile);
+                                setMemImagePreview(URL.createObjectURL(croppedFile));
+                              }
+                            });
+                            e.target.value = '';
                           }
                         }}
                         required={!memImageFile}
@@ -904,8 +916,16 @@ export default function AdminPage() {
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
-                          setSpLogoFile(file);
-                          setSpLogoPreview(URL.createObjectURL(file));
+                          setCropperSrc(URL.createObjectURL(file));
+                          setCropperConfig({
+                            aspectRatio: 1.5,
+                            circular: false,
+                            onCrop: (croppedFile) => {
+                              setSpLogoFile(croppedFile);
+                              setSpLogoPreview(URL.createObjectURL(croppedFile));
+                            }
+                          });
+                          e.target.value = '';
                         }
                       }}
                       required={!spLogoFile}
@@ -1092,8 +1112,16 @@ export default function AdminPage() {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditSpLogoFile(file);
-                        setEditSpLogoPreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 1.5,
+                          circular: false,
+                          onCrop: (croppedFile) => {
+                            setEditSpLogoFile(croppedFile);
+                            setEditSpLogoPreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -1407,8 +1435,16 @@ export default function AdminPage() {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditDocImageFile(file);
-                        setEditDocImagePreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 1,
+                          circular: true,
+                          onCrop: (croppedFile) => {
+                            setEditDocImageFile(croppedFile);
+                            setEditDocImagePreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -1545,8 +1581,16 @@ export default function AdminPage() {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditProfileImageFile(file);
-                        setEditProfileImagePreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 1,
+                          circular: true,
+                          onCrop: (croppedFile) => {
+                            setEditProfileImageFile(croppedFile);
+                            setEditProfileImagePreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -1579,8 +1623,16 @@ export default function AdminPage() {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        setEditCoverImageFile(file);
-                        setEditCoverImagePreview(URL.createObjectURL(file));
+                        setCropperSrc(URL.createObjectURL(file));
+                        setCropperConfig({
+                          aspectRatio: 2.5,
+                          circular: false,
+                          onCrop: (croppedFile) => {
+                            setEditCoverImageFile(croppedFile);
+                            setEditCoverImagePreview(URL.createObjectURL(croppedFile));
+                          }
+                        });
+                        e.target.value = '';
                       }
                     }}
                     className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1 file:px-2 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -1710,8 +1762,16 @@ export default function AdminPage() {
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            setEditMemImageFile(file);
-                            setEditMemImagePreview(URL.createObjectURL(file));
+                            setCropperSrc(URL.createObjectURL(file));
+                            setCropperConfig({
+                              aspectRatio: 1.5,
+                              circular: false,
+                              onCrop: (croppedFile) => {
+                                setEditMemImageFile(croppedFile);
+                                setEditMemImagePreview(URL.createObjectURL(croppedFile));
+                              }
+                            });
+                            e.target.value = '';
                           }
                         }}
                         className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"
@@ -1794,6 +1854,23 @@ export default function AdminPage() {
             </form>
           </div>
         </div>
+      )}
+      {cropperSrc && cropperConfig && (
+        <ImageCropperModal
+          imageSrc={cropperSrc}
+          aspectRatio={cropperConfig.aspectRatio}
+          circular={cropperConfig.circular}
+          locale={locale}
+          onClose={() => {
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+          onCrop={(croppedFile) => {
+            cropperConfig.onCrop(croppedFile);
+            setCropperSrc(null);
+            setCropperConfig(null);
+          }}
+        />
       )}
     </div>
   );
