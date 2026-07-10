@@ -116,6 +116,7 @@ export default function StudentsPage({ viewStudentProfile }) {
                 className="w-28 h-28 object-cover rounded-full border-4 border-surface shadow-sm"
                 src={grad.profile_image}
                 alt={grad[`name_${locale}`]}
+                loading="lazy"
               />
             </div>
             

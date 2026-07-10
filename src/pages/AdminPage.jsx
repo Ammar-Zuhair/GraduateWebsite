@@ -14,7 +14,7 @@ export default function AdminPage() {
     deleteStudent, deleteWish, addMemory, deleteMemory, updateMemory,
     updateStudentStatus, updateStudent,
     addSponsorItem, deleteSponsorItem, updateSponsorItem,
-    addDoctor, updateDoctor, deleteDoctor
+    addDoctor, updateDoctor, deleteDoctor, updateDoctorsOrder
   } = useData();
 
   // Doctor form states
@@ -26,6 +26,38 @@ export default function AdminPage() {
   const [docImageFile, setDocImageFile] = useState(null);
   const [docSuccess, setDocSuccess] = useState(false);
   const [isSubmittingDoctor, setIsSubmittingDoctor] = useState(false);
+
+  // Doctor drag and drop states & handlers
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    const reorderedDoctors = [...doctors];
+    const [draggedItem] = reorderedDoctors.splice(draggedIndex, 1);
+    reorderedDoctors.splice(targetIndex, 0, draggedItem);
+
+    const res = await updateDoctorsOrder(reorderedDoctors);
+    if (res && !res.success) {
+      alert(locale === 'ar' ? '⚠️ فشل حفظ الترتيب الجديد في قاعدة البيانات. تأكد من تفعيل خاصية الترتيب.' : '⚠️ Failed to save new order in database.');
+    }
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   // Edit Doctor modal states
   const [editingDoctor, setEditingDoctor] = useState(null);
@@ -704,16 +736,8 @@ export default function AdminPage() {
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            setCropperSrc(URL.createObjectURL(file));
-                            setCropperConfig({
-                              aspectRatio: 1.5,
-                              circular: false,
-                              onCrop: (croppedFile) => {
-                                setMemImageFile(croppedFile);
-                                setMemImagePreview(URL.createObjectURL(croppedFile));
-                              }
-                            });
-                            e.target.value = '';
+                            setMemImageFile(file);
+                            setMemImagePreview(URL.createObjectURL(file));
                           }
                         }}
                         required={!memImageFile}
@@ -1274,27 +1298,47 @@ export default function AdminPage() {
 
             {/* List Doctors */}
             <div className="lg:col-span-2 bg-background border border-outline-variant/20 p-6 shadow-sm overflow-x-auto w-full">
-              <h4 className="text-sm font-bold text-primary border-b border-primary/10 pb-3 mb-4">
-                {locale === 'ar' ? 'قائمة الدكاترة والكلمات المنشورة' : 'Published Doctor Speeches'}
-              </h4>
+              <div className="flex justify-between items-center border-b border-primary/10 pb-3 mb-4 flex-wrap gap-2">
+                <h4 className="text-sm font-bold text-primary">
+                  {locale === 'ar' ? 'قائمة الدكاترة والكلمات المنشورة' : 'Published Doctor Speeches'}
+                </h4>
+                <span className="text-[10px] text-secondary bg-black/5 px-2 py-1 rounded">
+                  {locale === 'ar' ? '💡 اسحب السطور لترتيب ظهورها' : '💡 Drag rows to reorder'}
+                </span>
+              </div>
               <table className="w-full text-right rtl:text-right ltr:text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-primary/20 font-bold text-secondary uppercase tracking-widest text-[10px]">
-                    <th className="py-2.5 px-3">{locale === 'ar' ? 'الصورة' : 'Avatar'}</th>
+                    <th className="py-2.5 px-3">{locale === 'ar' ? 'الترتيب / الصورة' : 'Order / Avatar'}</th>
                     <th className="py-2.5 px-3">{locale === 'ar' ? 'الاسم' : 'Name'}</th>
                     <th className="py-2.5 px-3">{locale === 'ar' ? 'المنصب' : 'Title'}</th>
                     <th className="py-2.5 px-3">{locale === 'ar' ? 'التحكم' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {doctors.map(d => (
-                    <tr key={d.id} className="border-b border-primary/10 hover:bg-primary/5 font-semibold text-primary">
+                  {doctors.map((d, index) => (
+                    <tr 
+                      key={d.id} 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={`border-b border-primary/10 hover:bg-primary/5 font-semibold text-primary transition-all duration-150 ${
+                        draggedIndex === index ? 'opacity-40 bg-primary/10' : ''
+                      }`}
+                    >
                       <td className="py-2.5 px-3">
-                        <img 
-                          src={d.image_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(d.name_ar)} 
-                          alt="" 
-                          className="w-8 h-8 rounded-full object-cover border border-outline-variant/30" 
-                        />
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-secondary cursor-move select-none text-base" title={locale === 'ar' ? 'اسحب للترتيب' : 'Drag to reorder'}>
+                            drag_indicator
+                          </span>
+                          <img 
+                            src={d.image_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(d.name_ar)} 
+                            alt="" 
+                            className="w-8 h-8 rounded-full object-cover border border-outline-variant/30" 
+                          />
+                        </div>
                       </td>
                       <td className="py-2.5 px-3 font-bold">{d.name_ar}</td>
                       <td className="py-2.5 px-3 text-secondary">{d.title_ar}</td>
@@ -1762,16 +1806,8 @@ export default function AdminPage() {
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            setCropperSrc(URL.createObjectURL(file));
-                            setCropperConfig({
-                              aspectRatio: 1.5,
-                              circular: false,
-                              onCrop: (croppedFile) => {
-                                setEditMemImageFile(croppedFile);
-                                setEditMemImagePreview(URL.createObjectURL(croppedFile));
-                              }
-                            });
-                            e.target.value = '';
+                            setEditMemImageFile(file);
+                            setEditMemImagePreview(URL.createObjectURL(file));
                           }
                         }}
                         className="text-xs text-primary file:bg-primary file:text-white file:border-0 file:py-1.5 file:px-3 file:cursor-pointer hover:file:opacity-90 w-full"

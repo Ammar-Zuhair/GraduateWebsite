@@ -18,6 +18,24 @@ export default function MemoriesPage() {
   // Video modal state
   const [selectedVideo, setSelectedVideo] = useState(null);
 
+  const getCategoryLabel = (cat) => {
+    switch (cat) {
+      case 'ceremony': return locale === 'ar' ? 'الحفل' : 'Ceremony';
+      case 'projects': return locale === 'ar' ? 'مشاريع التخرج' : 'Graduation Projects';
+      case 'trips': return locale === 'ar' ? 'الرحلات' : 'Trips';
+      case 'campus': return locale === 'ar' ? 'الحياة الجامعية' : 'Campus Life';
+      default: return cat;
+    }
+  };
+
+  const getThumbnailUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('/public/gallery/') && !url.includes('_thumb.')) {
+      return url.replace(/(\.[a-zA-Z0-9]+)(?=\?|$)/, '_thumb$1');
+    }
+    return url;
+  };
+
   const imagesOnly = memories.filter(m => m.media_type === 'image');
   const videosOnly = memories.filter(m => m.media_type === 'video');
 
@@ -189,9 +207,19 @@ export default function MemoriesPage() {
             >
               <img
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 select-none"
-                src={item.url}
+                src={getThumbnailUrl(item.url)}
                 alt={item[`title_${locale}`]}
+                loading="lazy"
+                onError={(e) => {
+                  if (e.target.src !== item.url) {
+                    e.target.src = item.url;
+                  }
+                }}
               />
+              {/* Category Tag */}
+              <span className="absolute top-3 left-3 bg-primary/85 text-[#c59e62] text-xs font-bold px-2 py-1 shadow border border-[#c59e62]/20 rounded select-none z-20">
+                {getCategoryLabel(item.category)}
+              </span>
               {/* Overlay with magnifying glass zoom icon */}
               <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
                 <span className="material-symbols-outlined text-4xl text-white font-bold bg-[#c59e62]/90 p-3 rounded-full shadow-lg">

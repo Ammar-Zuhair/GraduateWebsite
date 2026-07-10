@@ -23,8 +23,27 @@ export default function StudentProfilePage({ studentId, onBack }) {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
   const [photoTitle, setPhotoTitle] = useState('');
+  const [photoCategory, setPhotoCategory] = useState('campus');
   const [isAddingPhotoLoading, setIsAddingPhotoLoading] = useState(false);
   const [addPhotoError, setAddPhotoError] = useState('');
+
+  const getCategoryLabel = (cat) => {
+    switch (cat) {
+      case 'ceremony': return locale === 'ar' ? 'الحفل' : 'Ceremony';
+      case 'projects': return locale === 'ar' ? 'مشاريع التخرج' : 'Graduation Projects';
+      case 'trips': return locale === 'ar' ? 'الرحلات' : 'Trips';
+      case 'campus': return locale === 'ar' ? 'الحياة الجامعية' : 'Campus Life';
+      default: return cat;
+    }
+  };
+
+  const getThumbnailUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('/public/gallery/') && !url.includes('_thumb.')) {
+      return url.replace(/(\.[a-zA-Z0-9]+)(?=\?|$)/, '_thumb$1');
+    }
+    return url;
+  };
 
   const handleAddPhoto = async (e) => {
     e.preventDefault();
@@ -44,7 +63,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
         title_ar: photoTitle.trim() || 'صورة من المعرض',
         title_en: photoTitle.trim() || 'Gallery Photo',
         url: finalUrl,
-        category: 'campus',
+        category: photoCategory,
         media_type: 'image'
       });
 
@@ -54,6 +73,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
         setPhotoPreview('');
         setPhotoUrl('');
         setPhotoTitle('');
+        setPhotoCategory('campus');
         setPhotoInputType('file');
         alert(locale === 'ar' ? '✅ تم إضافة الصورة إلى معرضك بنجاح!' : '✅ Photo added to your gallery successfully!');
       } else {
@@ -213,9 +233,8 @@ export default function StudentProfilePage({ studentId, onBack }) {
           <img
             src={student.cover_image || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1200&auto=format&fit=crop'}
             alt=""
-            className="w-full h-full object-cover opacity-60"
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-primary/10"></div>
         </div>
 
         {/* Profile layout details */}
@@ -307,10 +326,20 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     className="aspect-square w-full overflow-hidden border border-[#c59e62]/30 cursor-pointer hover:opacity-90 transition-opacity relative group"
                   >
                     <img
-                      src={image.url}
+                      src={getThumbnailUrl(image.url)}
                       alt={image[`title_${locale}`]}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        if (e.target.src !== image.url) {
+                          e.target.src = image.url;
+                        }
+                      }}
                     />
+                    {/* Category Tag */}
+                    <span className="absolute top-2 left-2 bg-primary/85 text-[#c59e62] text-[9px] font-bold px-1.5 py-0.5 shadow-sm border border-[#c59e62]/20 rounded select-none z-10">
+                      {getCategoryLabel(image.category)}
+                    </span>
                     <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
                       <span className="material-symbols-outlined text-white text-3xl font-bold">zoom_in</span>
                     </div>
@@ -513,6 +542,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
                 setPhotoPreview('');
                 setPhotoUrl('');
                 setPhotoTitle('');
+                setPhotoCategory('campus');
                 setPhotoInputType('file');
                 setAddPhotoError('');
               }}
@@ -557,16 +587,8 @@ export default function StudentProfilePage({ studentId, onBack }) {
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
-                          setCropperSrc(URL.createObjectURL(file));
-                          setCropperConfig({
-                            aspectRatio: 1.5,
-                            circular: false,
-                            onCrop: (croppedFile) => {
-                              setPhotoFile(croppedFile);
-                              setPhotoPreview(URL.createObjectURL(croppedFile));
-                            }
-                          });
-                          e.target.value = '';
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
                         }
                       }}
                       required={!photoFile}
@@ -596,6 +618,28 @@ export default function StudentProfilePage({ studentId, onBack }) {
                 />
               </div>
 
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-secondary font-bold">{locale === 'ar' ? 'تصنيف الصورة' : 'Photo Category'}</label>
+                <select
+                  value={photoCategory}
+                  onChange={(e) => setPhotoCategory(e.target.value)}
+                  className="bg-transparent border-0 border-b-2 border-primary focus:border-[#c59e62] focus:ring-0 py-1.5 text-sm text-primary w-full cursor-pointer dark:bg-surface-container"
+                >
+                  <option value="campus" className="bg-[#F5E6D3] dark:bg-surface-container text-primary">
+                    {locale === 'ar' ? 'الحياة الجامعية' : 'Campus Life'}
+                  </option>
+                  <option value="ceremony" className="bg-[#F5E6D3] dark:bg-surface-container text-primary">
+                    {locale === 'ar' ? 'الحفل' : 'Ceremony'}
+                  </option>
+                  <option value="projects" className="bg-[#F5E6D3] dark:bg-surface-container text-primary">
+                    {locale === 'ar' ? 'مشاريع التخرج' : 'Graduation Projects'}
+                  </option>
+                  <option value="trips" className="bg-[#F5E6D3] dark:bg-surface-container text-primary">
+                    {locale === 'ar' ? 'الرحلات' : 'Trips'}
+                  </option>
+                </select>
+              </div>
+
               <div className="pt-4 flex justify-end gap-3">
                 <button 
                   type="button"
@@ -605,6 +649,7 @@ export default function StudentProfilePage({ studentId, onBack }) {
                     setPhotoPreview('');
                     setPhotoUrl('');
                     setPhotoTitle('');
+                    setPhotoCategory('campus');
                     setPhotoInputType('file');
                     setAddPhotoError('');
                   }}

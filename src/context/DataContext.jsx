@@ -37,13 +37,25 @@ export const DataProvider = ({ children }) => {
       if (newsData) setNews(newsData);
       if (sponsorsData) setSponsors(sponsorsData);
 
-      // Fetch doctors separately so it won't crash if table isn't created yet
+      // Fetch doctors separately so it won't crash if table isn't created yet or sort_order column doesn't exist
       try {
-        const { data: doctorsData, error: doctorsError } = await supabase
+        let { data: doctorsData, error: doctorsError } = await supabase
           .from('doctors')
           .select('*')
-          .order('created_at', { ascending: true });
-        if (!doctorsError && doctorsData) {
+          .order('sort_order', { ascending: true });
+        
+        if (doctorsError) {
+          // Fall back to created_at if sort_order doesn't exist yet
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('doctors')
+            .select('*')
+            .order('created_at', { ascending: true });
+          if (!fallbackError && fallbackData) {
+            doctorsData = fallbackData;
+          }
+        }
+        
+        if (doctorsData) {
           setDoctors(doctorsData);
         }
       } catch (e) {
@@ -339,6 +351,12 @@ export const DataProvider = ({ children }) => {
 
 
   const addDoctor = async (doctorData) => {
+    // Calculate the next sort order (highest current sort_order + 1)
+    const maxSort = doctors.length > 0
+      ? Math.max(...doctors.map(d => d.sort_order || 0))
+      : -1;
+    const nextSortOrder = maxSort + 1;
+
     const { data, error } = await supabase.from('doctors').insert([
       {
         name_ar: doctorData.name_ar,
@@ -347,7 +365,8 @@ export const DataProvider = ({ children }) => {
         speech_en: doctorData.speech_en || doctorData.speech_ar,
         image_url: doctorData.image_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(doctorData.name_ar),
         title_ar: doctorData.title_ar,
-        title_en: doctorData.title_en || doctorData.title_ar
+        title_en: doctorData.title_en || doctorData.title_ar,
+        sort_order: nextSortOrder
       }
     ]).select();
 
@@ -356,6 +375,24 @@ export const DataProvider = ({ children }) => {
       return { success: true, data: data[0] };
     }
     return { success: false, error: error?.message || 'Failed to add doctor' };
+  };
+
+  const updateDoctorsOrder = async (orderedDoctors) => {
+    // 1. Update local state immediately for snappy UI feel
+    setDoctors(orderedDoctors);
+
+    // 2. Persist to database in background
+    const promises = orderedDoctors.map((doc, index) =>
+      supabase.from('doctors').update({ sort_order: index }).eq('id', doc.id)
+    );
+    const results = await Promise.all(promises);
+    const hasError = results.some(r => r.error);
+    if (hasError) {
+      console.error("Failed to update doctors order:", results.map(r => r.error).filter(Boolean));
+      fetchAllData(); // Revert to database state if database update fails
+      return { success: false, error: results.find(r => r.error)?.error?.message || 'Database error' };
+    }
+    return { success: true };
   };
 
   const updateDoctorImage = async (id, imageUrl) => {
@@ -409,7 +446,7 @@ export const DataProvider = ({ children }) => {
       addWish, deleteWish, deleteStudent, addMemory, deleteMemory, updateMemoryLikes, updateMemory,
       updateStudentStatus, updateWishStatus, updateStudent,
       addNewsItem, deleteNewsItem, addSponsorItem, deleteSponsorItem, updateSponsorItem,
-      addDoctor, updateDoctorImage, updateDoctor, deleteDoctor
+      addDoctor, updateDoctorImage, updateDoctor, deleteDoctor, updateDoctorsOrder
     }}>
       {children}
     </DataContext.Provider>

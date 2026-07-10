@@ -24,46 +24,7 @@ import LoginPage from './pages/LoginPage';
 import CreateStudentProfilePage from './pages/CreateStudentProfilePage';
 import StudentWishesPage from './pages/StudentWishesPage';
 
-// Particle Falling Caps Component
-function FallingCaps() {
-  const [caps, setCaps] = useState([]);
 
-  useEffect(() => {
-    // Generate floating cap emojis randomly
-    const generateCap = () => {
-      const id = Date.now() + Math.random();
-      const style = {
-        left: `${Math.random() * 100}vw`,
-        animationDuration: `${Math.random() * 2 + 3}s`, // between 3-5 seconds
-        transform: `rotate(${Math.random() * 360}deg)`
-      };
-      setCaps(prev => [...prev, { id, style }]);
-
-      // Clean up after animation finishes
-      setTimeout(() => {
-        setCaps(prev => prev.filter(c => c.id !== id));
-      }, 5000);
-    };
-
-    // Spawn caps every 1.5 seconds at the footer
-    const interval = setInterval(generateCap, 1500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none z-[99] overflow-hidden select-none">
-      {caps.map(cap => (
-        <span
-          key={cap.id}
-          style={cap.style}
-          className="falling-cap block"
-        >
-          🎓
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function AppContent() {
   const { t, locale } = useLanguage();
@@ -235,8 +196,7 @@ function AppContent() {
         {renderPage()}
       </main>
 
-      {/* Particle emitter for graduation caps */}
-      <FallingCaps />
+
 
       <Footer setActivePage={setActivePage} />
     </div>

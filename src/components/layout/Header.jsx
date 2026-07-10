@@ -65,8 +65,8 @@ export default function Header({ activePage, setActivePage }) {
                 onClick={() => handleNavClick(item.id)}
                 className={`font-body-md text-[11px] font-bold whitespace-nowrap px-2.5 py-1.5 rounded transition-all select-none border-0 ${
                   isActive
-                    ? 'bg-[#c59e62] text-primary shadow'
-                    : 'text-on-primary/70 hover:text-white hover:bg-white/5'
+                    ? 'mobile-nav-active'
+                    : 'mobile-nav-inactive'
                 }`}
               >
                 {item.label}
@@ -87,8 +87,8 @@ export default function Header({ activePage, setActivePage }) {
                 onClick={() => handleNavClick(item.id)}
                 className={`font-body-md text-sm uppercase tracking-wider px-3 py-2 transition-all duration-150 relative h-full flex items-center ${
                   isActive
-                    ? 'text-[#c59e62] font-bold border-b-2 border-[#c59e62] pb-1'
-                    : 'text-on-primary/80 hover:text-white hover:bg-white/5'
+                    ? 'desktop-nav-active'
+                    : 'desktop-nav-inactive'
                 }`}
               >
                 {item.label}
@@ -139,7 +139,7 @@ export default function Header({ activePage, setActivePage }) {
           ) : (
             <button 
               onClick={() => handleNavClick('login')}
-              className="bg-[#c59e62] text-primary font-bold text-xs px-5 py-2.5 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap cursor-pointer"
+              className="header-cta-button text-xs px-5 py-2.5 border-0 whitespace-nowrap cursor-pointer"
             >
               {locale === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
             </button>
@@ -164,7 +164,7 @@ export default function Header({ activePage, setActivePage }) {
           ) : (
             <button 
               onClick={() => handleNavClick('login')}
-              className="bg-[#c59e62] text-primary font-bold text-[10px] px-2.5 py-1.5 hover:bg-[#ffdeae] hover:text-[#361f1a] transition-all border-0 whitespace-nowrap cursor-pointer"
+              className="header-cta-button text-[10px] px-2.5 py-1.5 border-0 whitespace-nowrap cursor-pointer"
             >
               {locale === 'ar' ? 'دخول' : 'Sign In'}
             </button>
