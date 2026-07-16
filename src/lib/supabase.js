@@ -51,39 +51,30 @@ const createThumbnail = (file, maxDim = 900) => {
 
 export const uploadImage = async (file, folder = 'general') => {
   if (!file) return null;
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const rawFileName = Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-  const fileName = `${rawFileName}.${fileExt}`;
-  const filePath = `${folder}/${fileName}`;
+  
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-  // 1. Upload original image
-  const { error: uploadError } = await supabase.storage
-    .from('gallery')
-    .upload(filePath, file);
-
-  if (uploadError) {
-    throw uploadError;
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary configuration is missing in environment variables.');
   }
 
-  // 2. Generate and upload thumbnail for memories
-  if (folder === 'memories') {
-    try {
-      const thumbFile = await createThumbnail(file, 900);
-      if (thumbFile) {
-        const thumbPath = `${folder}/${rawFileName}_thumb.${fileExt}`;
-        await supabase.storage
-          .from('gallery')
-          .upload(thumbPath, thumbFile);
-      }
-    } catch (err) {
-      console.warn("Failed to generate/upload thumbnail:", err);
-    }
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  formData.append('folder', folder);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || 'Failed to upload image to Cloudinary');
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from('gallery')
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  const data = await response.json();
+  return data.secure_url;
 };
 

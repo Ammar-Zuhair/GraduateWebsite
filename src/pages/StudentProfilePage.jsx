@@ -42,6 +42,9 @@ export default function StudentProfilePage({ studentId, onBack }) {
     if (url.includes('/public/gallery/') && !url.includes('_thumb.')) {
       return url.replace(/(\.[a-zA-Z0-9]+)(?=\?|$)/, '_thumb$1');
     }
+    if (url.includes('res.cloudinary.com')) {
+      return url.replace('/upload/', '/upload/c_limit,w_900,q_auto,f_auto/');
+    }
     return url;
   };
 

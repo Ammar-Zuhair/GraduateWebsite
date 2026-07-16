@@ -254,7 +254,7 @@ export default function HomePage({ setActivePage }) {
           {/* Cohort Logo with Glowing Golden Borders */}
           <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full p-1 bg-gradient-to-r from-[#c59e62] via-[#ffdeae] to-[#c59e62] shadow-[0_0_25px_rgba(197,158,98,0.7)] hover:shadow-[0_0_40px_rgba(197,158,98,0.95)] transition-all duration-500 flex items-center justify-center animate-fade-in mb-2">
             <img 
-              src="https://prsxwxpsuhkigtrntaqn.supabase.co/storage/v1/object/public/gallery/WhatsApp%20Image%202026-07-07%20at%2010.25.23%20PM.jpeg" 
+              src="https://res.cloudinary.com/kyic8ha7/image/upload/v1784160540/general/pvlx9olqjp2gpcy5f4o8.jpg" 
               alt={locale === 'ar' ? 'شعار الدفعة' : 'Cohort Logo'} 
               className="w-full h-full object-cover rounded-full select-none"
             />
