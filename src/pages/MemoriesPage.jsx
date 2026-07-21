@@ -11,6 +11,9 @@ export default function MemoriesPage() {
   // Filter category state
   const [activeFilter, setActiveFilter] = useState('all'); // all, ceremony, projects, trips, campus
 
+  // Media type state: 'photos' or 'videos'
+  const [mediaType, setMediaType] = useState('photos');
+
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -180,130 +183,164 @@ export default function MemoriesPage() {
         </p>
       </header>
 
-      {/* Categories Tabs Filter */}
-      <section className="flex flex-wrap justify-center gap-4 mb-12 border-b border-primary/10 pb-6 select-none">
-        {filters.map(filter => (
+      {/* Media Type Tabs Filter */}
+      <nav className="flex justify-center mb-10 select-none" aria-label="Media Type Filter">
+        <div className="inline-flex p-1 bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 rounded-full shadow-inner">
           <button
-            key={filter.id}
-            onClick={() => setActiveFilter(filter.id)}
-            className={`text-sm px-5 py-2.5 transition-colors cursor-pointer border-0 font-bold uppercase tracking-wider ${
-              activeFilter === filter.id 
-                ? 'bg-[#c59e62] text-primary shadow-sm' 
-                : 'bg-surface-container text-secondary hover:text-primary hover:bg-[#F5E6D3] dark:hover:bg-surface-container'
+            onClick={() => setMediaType('photos')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer border-0 ${
+              mediaType === 'photos'
+                ? 'bg-[#c59e62] text-primary shadow-sm'
+                : 'text-secondary hover:text-primary hover:bg-[#FAF8F5]/30 dark:hover:bg-surface-container-high'
             }`}
           >
-            {filter.label}
+            <span className="material-symbols-outlined text-lg">image</span>
+            {locale === 'ar' ? 'الصور' : 'Photos'}
           </button>
-        ))}
-      </section>
-
-      {/* Bento Grid Photos */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-10">
-        {filteredMemories.map((item) => (
-          <article
-            key={item.id}
-            className="group relative flex flex-col bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+          <button
+            onClick={() => setMediaType('videos')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer border-0 ${
+              mediaType === 'videos'
+                ? 'bg-[#c59e62] text-primary shadow-sm'
+                : 'text-secondary hover:text-primary hover:bg-[#FAF8F5]/30 dark:hover:bg-surface-container-high'
+            }`}
           >
-            <div 
-              onClick={() => handleImageClick(item.id)}
-              className="relative w-full aspect-square overflow-hidden cursor-pointer"
-            >
-              <img
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 select-none"
-                src={getThumbnailUrl(item.url)}
-                alt={item[`title_${locale}`]}
-                loading="lazy"
-                onError={(e) => {
-                  if (e.target.src !== item.url) {
-                    e.target.src = item.url;
-                  }
-                }}
-              />
-              {/* Category Tag */}
-              <span className="absolute top-3 left-3 bg-primary/85 text-[#c59e62] text-xs font-bold px-2 py-1 shadow border border-[#c59e62]/20 rounded select-none z-20">
-                {getCategoryLabel(item.category)}
-              </span>
-              {/* Overlay with magnifying glass zoom icon */}
-              <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
-                <span className="material-symbols-outlined text-4xl text-white font-bold bg-[#c59e62]/90 p-3 rounded-full shadow-lg">
-                  zoom_in
-                </span>
-              </div>
-            </div>
-
-            {/* Info under the image */}
-            <div className="p-4 flex flex-col gap-1 bg-[#F5E6D3] dark:bg-surface-container border-t border-outline-variant/20">
-              <div className="flex justify-between items-start gap-3">
-                <h3 className="font-bold text-primary text-base leading-tight text-right rtl:text-right ltr:text-left">
-                  {item[`title_${locale}`]}
-                </h3>
-                
-                {/* Direct Download button */}
-                <a 
-                  href={item.url} 
-                  download={`memory_${item.id}.jpg`}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-secondary hover:text-[#c59e62] transition-colors p-1 flex items-center justify-center shrink-0"
-                  aria-label="Download Image"
-                >
-                  <span className="material-symbols-outlined text-xl font-bold">download</span>
-                </a>
-              </div>
-              <span className="text-secondary text-[11px] font-bold text-right rtl:text-right ltr:text-left">
-                {new Date(item.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
-              </span>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      {/* Videos Section */}
-      <section className="mt-28 w-full border-t border-[#c59e62]/20 pt-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl text-primary font-bold">
-            {locale === 'ar' ? 'قسم مقاطع الفيديو والوثائقيات' : 'Documentary Video Section'}
-          </h2>
-          <div className="w-24 h-px bg-on-tertiary-container mx-auto mt-6"></div>
+            <span className="material-symbols-outlined text-lg">movie</span>
+            {locale === 'ar' ? 'الفيديوهات' : 'Videos'}
+          </button>
         </div>
+      </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {videosOnly.map(video => (
-            <div
-              key={video.id}
-              onClick={() => setSelectedVideo(video)}
-              className="bg-[#F5E6D3] dark:bg-surface-container border border-outline-variant/20 p-4 shadow-sm hover:shadow-md cursor-pointer group flex flex-col justify-between"
+      {/* Categories Tabs Filter (Only visible when Photos is selected) */}
+      {mediaType === 'photos' && (
+        <section className="flex flex-wrap justify-center gap-4 mb-12 border-b border-primary/10 pb-6 select-none animate-fade-in">
+          {filters.map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              className={`text-sm px-5 py-2.5 transition-colors cursor-pointer border-0 font-bold uppercase tracking-wider ${
+                activeFilter === filter.id 
+                  ? 'bg-[#c59e62] text-primary shadow-sm' 
+                  : 'bg-surface-container text-secondary hover:text-primary hover:bg-[#F5E6D3] dark:hover:bg-surface-container'
+              }`}
             >
-              <div className="relative w-full aspect-video overflow-hidden bg-black">
-                {isDirectVideo(video.url) ? (
-                  <video
-                    src={video.url}
-                    preload="metadata"
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                  />
-                ) : (
-                  <img
-                    src={video.cover_url || getVideoThumbnail(video.url)}
-                    alt=""
-                    className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                  />
-                )}
-                {/* Play Button Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/20 z-10">
-                  <span className="material-symbols-outlined text-5xl text-[#c59e62] font-bold group-hover:scale-110 transition-transform">
-                    play_circle
+              {filter.label}
+            </button>
+          ))}
+        </section>
+      )}
+
+      {/* Bento Grid Photos (Only visible when Photos is selected) */}
+      {mediaType === 'photos' && (
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-10 animate-fade-in">
+          {filteredMemories.map((item) => (
+            <article
+              key={item.id}
+              className="group relative flex flex-col bg-[#F5E6D3] dark:bg-surface-container border border-[#c59e62]/20 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div 
+                onClick={() => handleImageClick(item.id)}
+                className="relative w-full aspect-square overflow-hidden cursor-pointer"
+              >
+                <img
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 select-none"
+                  src={getThumbnailUrl(item.url)}
+                  alt={item[`title_${locale}`]}
+                  loading="lazy"
+                  onError={(e) => {
+                    if (e.target.src !== item.url) {
+                      e.target.src = item.url;
+                    }
+                  }}
+                />
+                {/* Category Tag */}
+                <span className="absolute top-3 left-3 bg-primary/85 text-[#c59e62] text-xs font-bold px-2 py-1 shadow border border-[#c59e62]/20 rounded select-none z-20">
+                  {getCategoryLabel(item.category)}
+                </span>
+                {/* Overlay with magnifying glass zoom icon */}
+                <div className="absolute inset-0 bg-primary/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+                  <span className="material-symbols-outlined text-4xl text-white font-bold bg-[#c59e62]/90 p-3 rounded-full shadow-lg">
+                    zoom_in
                   </span>
                 </div>
               </div>
-              <h3 className="text-sm text-primary font-bold mt-4 mb-2 text-center group-hover:text-[#c59e62] transition-colors leading-relaxed">
-                {video[`title_${locale}`]}
-              </h3>
-            </div>
+
+              {/* Info under the image */}
+              <div className="p-4 flex flex-col gap-1 bg-[#F5E6D3] dark:bg-surface-container border-t border-outline-variant/20">
+                <div className="flex justify-between items-start gap-3">
+                  <h3 className="font-bold text-primary text-base leading-tight text-right rtl:text-right ltr:text-left">
+                    {item[`title_${locale}`]}
+                  </h3>
+                  
+                  {/* Direct Download button */}
+                  <a 
+                    href={item.url} 
+                    download={`memory_${item.id}.jpg`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-secondary hover:text-[#c59e62] transition-colors p-1 flex items-center justify-center shrink-0"
+                    aria-label="Download Image"
+                  >
+                    <span className="material-symbols-outlined text-xl font-bold">download</span>
+                  </a>
+                </div>
+                <span className="text-secondary text-[11px] font-bold text-right rtl:text-right ltr:text-left">
+                  {new Date(item.created_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                </span>
+              </div>
+            </article>
           ))}
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Videos Section (Only visible when Videos is selected) */}
+      {mediaType === 'videos' && (
+        <section className="w-full animate-fade-in">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl text-primary font-bold">
+              {locale === 'ar' ? 'قسم مقاطع الفيديو والوثائقيات' : 'Documentary Video Section'}
+            </h2>
+            <div className="w-24 h-px bg-on-tertiary-container mx-auto mt-6"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {videosOnly.map(video => (
+              <div
+                key={video.id}
+                onClick={() => setSelectedVideo(video)}
+                className="bg-[#F5E6D3] dark:bg-surface-container border border-outline-variant/20 p-4 shadow-sm hover:shadow-md cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="relative w-full aspect-video overflow-hidden bg-black">
+                  {isDirectVideo(video.url) ? (
+                    <video
+                      src={video.url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                    />
+                  ) : (
+                    <img
+                      src={video.cover_url || getVideoThumbnail(video.url)}
+                      alt=""
+                      className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                    />
+                  )}
+                  {/* Play Button Overlay */}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/20 z-10">
+                    <span className="material-symbols-outlined text-5xl text-[#c59e62] font-bold group-hover:scale-110 transition-transform">
+                      play_circle
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-sm text-primary font-bold mt-4 mb-2 text-center group-hover:text-[#c59e62] transition-colors leading-relaxed">
+                  {video[`title_${locale}`]}
+                </h3>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Image Lightbox */}
       {lightboxOpen && (
